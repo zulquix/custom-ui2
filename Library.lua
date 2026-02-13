@@ -138,6 +138,9 @@ Library.Themes = {
 };
 
 Library.ActiveTheme = 'SodiumDefault';
+pcall(function()
+    Library:SetTheme(Library.ActiveTheme)
+end)
 Library.RGB = {
     Enabled = false,
     Speed = 3, -- higher = faster
@@ -2282,14 +2285,8 @@ do
         end
 
         function Toggle:Display()
-            local innerReg = Library.RegistryMap[ToggleInner]
-            local accent = (innerReg and innerReg.Properties.BackgroundColor3 == 'AccentColor' and Library.AccentColor) or Library.AccentColor
-            local main = Library.MainColor
-            local outline = Library.OutlineColor
-            local accentDark = Library.AccentColorDark
-
-            local bg = Toggle.Value and accent or main
-            local bc = Toggle.Value and accentDark or outline
+            local bg = Toggle.Value and Library.AccentColor or Library.MainColor
+            local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
             local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
 
             Library:Tween(ToggleInner, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
@@ -2302,6 +2299,7 @@ do
                 BorderSizePixel = Toggle.Value and 0 or 0,
             })
 
+            local innerReg = Library.RegistryMap[ToggleInner]
             if innerReg then
                 innerReg.Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
                 innerReg.Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
