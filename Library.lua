@@ -55,6 +55,9 @@ InteractionBlocker.ZIndex = 0
 InteractionBlocker.Size = UDim2.fromScale(1, 1)
 InteractionBlocker.Parent = ScreenGui
 
+InteractionBlocker.BackgroundTransparency = 1
+InteractionBlocker.Visible = false
+
 InteractionBlocker.MouseButton1Down:Connect(function() end)
 InteractionBlocker.MouseButton2Down:Connect(function() end)
 
@@ -176,28 +179,15 @@ function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
     InteractionBlocker.ZIndex = 0
     InteractionBlocker.Active = true
     InteractionBlocker.Modal = self.InteractionLocked
-
-    local dim = (type(dimTransparency) == 'number') and dimTransparency or 0.55
-
-    local ti = self.Animation and self.Animation.TweenInfoSlow or TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    InteractionBlocker.BackgroundTransparency = 1
 
     if not self.InteractionLocked then
-        -- fade out dim
-        pcall(function()
-            TweenService:Create(InteractionBlocker, ti, { BackgroundTransparency = 1 }):Play()
-        end)
-        task.delay(ti.Time, function()
+        task.delay(0.25, function()
             InteractionBlocker.Visible = false
             InteractionBlocker.Modal = false
         end)
         return
     end
-
-    -- fade in dim
-    InteractionBlocker.BackgroundTransparency = 1
-    pcall(function()
-        TweenService:Create(InteractionBlocker, ti, { BackgroundTransparency = dim }):Play()
-    end)
 end
 
 function Library:Tween(inst, tweenInfo, props)
