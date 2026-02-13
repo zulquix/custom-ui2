@@ -617,7 +617,7 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-print("sigma 1.3")
+print("sigma 1.5")
 -- You can use the SaveManager:LoadAutoloadConfig()
 -- which has been marked to be one that auto loads!
 SaveManager:LoadAutoloadConfig()
