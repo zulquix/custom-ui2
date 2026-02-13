@@ -20,15 +20,6 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.2
 })
 
--- Modern theme additions (built-in + custom)
-Library:RegisterCustomTheme('PurpleNight', {
-    AccentColor = Color3.fromRGB(180, 80, 255),
-    MainColor = Color3.fromRGB(24, 20, 28),
-    BackgroundColor = Color3.fromRGB(18, 15, 22),
-    OutlineColor = Color3.fromRGB(60, 45, 75),
-    FontColor = Color3.fromRGB(245, 240, 255),
-})
-
 -- CALLBACK NOTE:
 -- Passing in callback functions via the initial element parameters (i.e. Callback = function(Value)...) works
 -- HOWEVER, using Toggles/Options.INDEX:OnChanged(function(Value) ... ) is the RECOMMENDED way to do this.
@@ -56,18 +47,6 @@ LeftGroupBox:AddToggle('RGBAccent', {
     end
 })
 
--- New: Apply custom theme (demonstrates theme registration)
-LeftGroupBox:AddDropdown('ThemeSelect', {
-    Values = { 'Default', 'Dark', 'Ocean', 'Sunset', 'PurpleNight' },
-    Default = 'Default',
-    Multi = false,
-    Text = 'Theme',
-    Tooltip = 'Switch between built-in and custom themes',
-    Callback = function(Value)
-        Library:SetTheme(Value)
-        Library:Notify('Theme set to: ' .. tostring(Value), 2)
-    end
-})
 
 -- Demo: show/hide menu to demonstrate interaction lock + open animation
 LeftGroupBox:AddButton({
