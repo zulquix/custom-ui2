@@ -25,13 +25,14 @@ ProtectGui(ScreenGui);
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
--- Visual overlay for blur + interaction blocking when UI is open.
--- Purely visual: does not change gameplay logic, only captures input and adds BlurEffect.
-local Lighting = Services.Lighting
-local BlurEffect = Instance.new('BlurEffect')
-BlurEffect.Size = 0
-BlurEffect.Enabled = false
-BlurEffect.Parent = Lighting
+local ToggleSound = Instance.new('Sound')
+ToggleSound.Name = 'ToggleSound'
+ToggleSound.SoundId = 'rbxassetid://85146328206277'
+ToggleSound.Volume = 0.6
+ToggleSound.Parent = ScreenGui
+
+-- Visual overlay for interaction blocking when UI is open.
+-- Purely visual: does not change gameplay logic, only captures input.
 
 local InteractionBlocker = Instance.new('TextButton')
 InteractionBlocker.Name = 'InteractionBlocker'
@@ -47,12 +48,6 @@ InteractionBlocker.Parent = ScreenGui
 
 InteractionBlocker.MouseButton1Down:Connect(function() end)
 InteractionBlocker.MouseButton2Down:Connect(function() end)
-
-local function setBlur(amount)
-    local enabled = amount > 0
-    BlurEffect.Enabled = enabled
-    BlurEffect.Size = amount
-end
 
 local Toggles = {};
 local Options = {};
@@ -85,9 +80,12 @@ local Library = {
 
 Library.Animation = {
     Enabled = true,
-    TweenInfoFast = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-    TweenInfo = TweenInfo.new(0.20, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-    TweenInfoSlow = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    TweenInfoFast = TweenInfo.new(0.10, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenInfoSlow = TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenInfoSpring = TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    TweenInfoSpringFast = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    TweenInfoLinearFast = TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
 };
 
 Library.PerformanceMode = false;
@@ -167,41 +165,27 @@ function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
 
     InteractionBlocker.Visible = true
     InteractionBlocker.ZIndex = 0
+    InteractionBlocker.Active = true
+    InteractionBlocker.Modal = self.InteractionLocked
 
-    local amt = (type(blurAmount) == 'number') and blurAmount or 14
     local dim = (type(dimTransparency) == 'number') and dimTransparency or 0.55
 
     local ti = self.Animation and self.Animation.TweenInfoSlow or TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
     if not self.InteractionLocked then
-        -- fade out dim + blur
+        -- fade out dim
         pcall(function()
             TweenService:Create(InteractionBlocker, ti, { BackgroundTransparency = 1 }):Play()
         end)
-        if self.Animation and self.Animation.Enabled then
-            pcall(function()
-                TweenService:Create(BlurEffect, ti, { Size = 0 }):Play()
-            end)
-        else
-            BlurEffect.Size = 0
-        end
         task.delay(ti.Time, function()
-            setBlur(0)
             InteractionBlocker.Visible = false
+            InteractionBlocker.Modal = false
         end)
         return
     end
 
-    -- fade in dim + blur
+    -- fade in dim
     InteractionBlocker.BackgroundTransparency = 1
-    setBlur(amt)
-    if self.Animation and self.Animation.Enabled then
-        pcall(function()
-            TweenService:Create(BlurEffect, ti, { Size = amt }):Play()
-        end)
-    else
-        BlurEffect.Size = amt
-    end
     pcall(function()
         TweenService:Create(InteractionBlocker, ti, { BackgroundTransparency = dim }):Play()
     end)
@@ -727,7 +711,7 @@ do
         local CheckerFrame = Library:Create('ImageLabel', {
             BorderSizePixel = 0;
             Size = UDim2.new(0, 27, 0, 13);
-            ZIndex = 5;
+            BackgroundTransparency = 1;
             Image = 'http://www.roblox.com/asset/?id=12977615774';
             Visible = not not Info.Transparency;
             Parent = DisplayFrame;
@@ -1294,9 +1278,6 @@ do
             Mode = Info.Mode or 'Toggle'; -- Always, Toggle, Hold
             Type = 'KeyPicker';
             Callback = Info.Callback or function(Value) end;
-            ChangedCallback = Info.ChangedCallback or function(New) end;
-
-            SyncToggleState = Info.SyncToggleState or false;
         };
 
         KeyPicker.Modifiers = Info.Modifiers or { Ctrl = false, Shift = false, Alt = false }
@@ -1406,6 +1387,12 @@ do
             FillDirection = Enum.FillDirection.Vertical;
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = ModeSelectInner;
+        });
+
+        Library:Create('UIPadding', {
+            Name = 'Padding',
+            PaddingLeft = UDim.new(0, 4),
+            Parent = ModeSelectInner,
         });
 
         local ContainerLabel = Library:CreateLabel({
@@ -1863,6 +1850,7 @@ do
 
                 if Button.DoubleClick then
                     Library:RemoveFromRegistry(Button.Label)
+                    Button.Label.TextColor3 = Library.AccentColor
                     Library:AddToRegistry(Button.Label, { TextColor3 = 'AccentColor' })
 
                     Button.Label.TextColor3 = Library.AccentColor
@@ -2211,6 +2199,33 @@ do
             BorderColor3 = 'OutlineColor';
         });
 
+        local ToggleKnob = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderColor3 = Library.AccentColorDark;
+            Size = UDim2.new(0, 5, 0, 5);
+            Position = UDim2.fromOffset(4, 4);
+            ZIndex = 7;
+            Parent = ToggleInner;
+        });
+
+        Library:AddToRegistry(ToggleKnob, {
+            BackgroundColor3 = 'AccentColor';
+            BorderColor3 = 'AccentColorDark';
+        });
+
+        local ToggleGlow = Library:Create('UIStroke', {
+            Color = Library.AccentColor;
+            Thickness = 1;
+            Transparency = 1;
+            LineJoinMode = Enum.LineJoinMode.Round;
+            ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
+            Parent = ToggleInner;
+        });
+
+        Library:AddToRegistry(ToggleGlow, {
+            Color = 'AccentColor';
+        });
+
         local ToggleLabel = Library:CreateLabel({
             Size = UDim2.new(0, 216, 1, 0);
             Position = UDim2.new(1, 6, 0, 0);
@@ -2252,10 +2267,21 @@ do
         function Toggle:Display()
             local bg = Toggle.Value and Library.AccentColor or Library.MainColor
             local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
+            local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
 
-            Library:Tween(ToggleInner, Library.Animation.TweenInfoFast, {
+            Library:Tween(ToggleInner, ti, {
                 BackgroundColor3 = bg,
                 BorderColor3 = bc,
+            })
+
+            local knobPos = Toggle.Value and UDim2.fromOffset(6, 3) or UDim2.fromOffset(4, 4)
+            local knobSize = Toggle.Value and UDim2.new(0, 6, 0, 6) or UDim2.new(0, 5, 0, 5)
+            Library:Tween(ToggleKnob, ti, {
+                Position = knobPos,
+                Size = knobSize,
+            })
+            Library:Tween(ToggleGlow, Library.Animation.TweenInfoFast, {
+                Transparency = Toggle.Value and 0.15 or 1,
             })
 
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
@@ -2335,7 +2361,7 @@ do
 
         ToggleRegion.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
-                Toggle:SetValue(not Toggle.Value) -- Why was it not like this from the start?
+                Toggle:SetValue(not Toggle.Value);
                 Library:AttemptSave();
             end;
         end);
@@ -3106,7 +3132,7 @@ do
 
     local WatermarkOuter = Library:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
-        Position = UDim2.new(0, 100, 0, -25);
+        Position = UDim2.new(0, 10, 0.5, -70);
         Size = UDim2.new(0, 213, 0, 20);
         ZIndex = 200;
         Visible = false;
@@ -3164,7 +3190,7 @@ do
 
     Library.Watermark = WatermarkOuter;
     Library.WatermarkText = WatermarkLabel;
-    Library:MakeDraggable(Library.Watermark);
+    -- Keep watermark in a consistent default location (above keybinds)
 
 
 
@@ -3396,13 +3422,13 @@ function Library:Notify(Text, Time, Type, Icon)
         notifyOuter.Size = UDim2.new(0, 0, 0, ySize)
     end)
 
-    self:Tween(notifyOuter, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    self:Tween(notifyOuter, (self.Animation and self.Animation.TweenInfoSpringFast) or TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, xSize + 8 + leftPadding, 0, ySize),
     })
 
     task.spawn(function()
         wait(Time or 5)
-        self:Tween(notifyOuter, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        self:Tween(notifyOuter, (self.Animation and self.Animation.TweenInfo) or TweenInfo.new(0.20, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 0, 0, ySize),
         })
         wait(0.25)
@@ -3674,15 +3700,15 @@ function Library:CreateWindow(...)
                 Tab:HideTab();
             end;
 
-            Blocker.BackgroundTransparency = 0;
-            TabButton.BackgroundColor3 = Library.MainColor;
+            Library:Tween(Blocker, Library.Animation.TweenInfoFast, { BackgroundTransparency = 0 })
+            Library:Tween(TabButton, Library.Animation.TweenInfoFast, { BackgroundColor3 = Library.MainColor })
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
             TabFrame.Visible = true;
         end;
 
         function Tab:HideTab()
-            Blocker.BackgroundTransparency = 1;
-            TabButton.BackgroundColor3 = Library.BackgroundColor;
+            Library:Tween(Blocker, Library.Animation.TweenInfoFast, { BackgroundTransparency = 1 })
+            Library:Tween(TabButton, Library.Animation.TweenInfoFast, { BackgroundColor3 = Library.BackgroundColor })
             Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
             TabFrame.Visible = false;
         end;
@@ -4025,6 +4051,11 @@ function Library:CreateWindow(...)
         local FadeTime = Config.MenuFadeTime;
         Fading = true;
         Toggled = (not Toggled);
+
+        pcall(function()
+            ToggleSound:Play()
+        end)
+
         ModalElement.Modal = Toggled;
 
         -- Visual-only background lock (blur + input capture)
@@ -4035,8 +4066,8 @@ function Library:CreateWindow(...)
             Outer.Visible = true;
 
             local startPos = Outer.Position
-            Outer.Position = startPos + UDim2.fromOffset(0, 18)
-            Library:Tween(Outer, TweenInfo.new(FadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = startPos })
+            Outer.Position = startPos + UDim2.fromOffset(0, 22)
+            Library:Tween(Outer, (Library.Animation and Library.Animation.TweenInfoSpringFast) or TweenInfo.new(FadeTime, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = startPos })
 
             task.spawn(function()
                 -- TODO: add cursor fade?
