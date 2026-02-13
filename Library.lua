@@ -2225,25 +2225,9 @@ do
             Parent = ToggleOuter;
         });
 
-        local ToggleIndicator = Library:Create('Frame', {
-            BackgroundColor3 = Library.AccentColor;
-            BorderColor3 = Library.AccentColorDark;
-            BorderMode = Enum.BorderMode.Inset;
-            Size = UDim2.new(0, 7, 0, 7);
-            Position = UDim2.fromOffset(3, 3);
-            ZIndex = 7;
-            Visible = true;
-            Parent = ToggleInner;
-        });
-
         Library:AddToRegistry(ToggleInner, {
             BackgroundColor3 = 'MainColor';
             BorderColor3 = 'OutlineColor';
-        });
-
-        Library:AddToRegistry(ToggleIndicator, {
-            BackgroundColor3 = 'AccentColor';
-            BorderColor3 = 'AccentColorDark';
         });
 
         local ToggleLabel = Library:CreateLabel({
@@ -2290,17 +2274,6 @@ do
             local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
 
             Library:Tween(ToggleInner, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
-
-            ToggleIndicator.BackgroundColor3 = Library.AccentColor
-            ToggleIndicator.BorderColor3 = Library.AccentColorDark
-
-            local indTi = (Library.Animation and Library.Animation.TweenInfoSpringFast) or nil
-            Library:Tween(ToggleIndicator, indTi, {
-                Size = Toggle.Value and UDim2.new(0, 7, 0, 7) or UDim2.new(0, 0, 0, 0),
-                Position = Toggle.Value and UDim2.fromOffset(3, 3) or UDim2.fromOffset(6, 6),
-                BackgroundTransparency = Toggle.Value and 0 or 1,
-                BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.AccentColorDark,
-            })
 
             local innerReg = Library.RegistryMap[ToggleInner]
             if innerReg then
@@ -2387,10 +2360,7 @@ do
             end;
         end);
 
-        Library:ApplyClickTween(ToggleRegion, ToggleInner,
-            { Size = UDim2.new(1, -1, 1, -1), Position = UDim2.fromOffset(0.5, 0.5) },
-            { Size = UDim2.new(1, 0, 1, 0), Position = UDim2.fromOffset(0, 0) }
-        )
+
 
         if Toggle.Risky then
             Library:RemoveFromRegistry(ToggleLabel)
