@@ -199,6 +199,21 @@ local ThemeManager = {} do
 
 	function ThemeManager:SetLibrary(lib)
 		self.Library = lib
+		-- Keep AccentColor picker in sync with RGB accent changes
+		if self.Library then
+			self.Library.OnAccentColorChanged = function(color)
+				if Options and Options.AccentColor and Options.AccentColor.Type == 'ColorPicker' then
+					Options.AccentColor.Value = color
+					pcall(function()
+						Options.AccentColor:SetHSVFromRGB(color)
+					end)
+					pcall(function()
+						Options.AccentColor:Display()
+					end)
+					self:ThemeUpdate()
+				end
+			end
+		end
 	end
 
 	function ThemeManager:BuildFolderTree()
