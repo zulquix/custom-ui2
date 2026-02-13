@@ -20,6 +20,9 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.2
 })
 
+-- Ensure ESP preview panel is visible (visual-only)
+Window:SetESPPreviewVisible(true)
+
 -- Modern theme additions (built-in + custom)
 Library:RegisterCustomTheme('PurpleNight', {
     AccentColor = Color3.fromRGB(180, 80, 255),
@@ -67,6 +70,15 @@ LeftGroupBox:AddDropdown('ThemeSelect', {
         Library:SetTheme(Value)
         Library:Notify('Theme set to: ' .. tostring(Value), 2)
     end
+})
+
+-- Demo: show/hide menu to demonstrate blur + interaction lock + open animation
+LeftGroupBox:AddButton({
+    Text = 'Toggle Menu (Blur Demo)',
+    Func = function()
+        Library:Toggle()
+    end,
+    Tooltip = 'Shows blur + input blocking overlay when open'
 })
 
 -- We can also get our Main tab via the following code:
@@ -438,6 +450,50 @@ Tab2:AddToggle('Tab2Toggle', { Text = 'Tab2 Toggle' });
 local RightGroupbox = Tabs.Main:AddRightGroupbox('Groupbox #3');
 RightGroupbox:AddToggle('ControlToggle', { Text = 'Dependency box toggle' });
 
+-- Visual-only ESP controls that drive the ESP preview panel
+RightGroupbox:AddDivider()
+RightGroupbox:AddLabel('ESP Preview Controls')
+
+RightGroupbox:AddToggle('ESP_Box', {
+    Text = 'ESP: Bounding Box',
+    Default = false,
+    Callback = function(v)
+        Window:UpdateESPPreview({ Box = v })
+    end,
+})
+
+RightGroupbox:AddToggle('ESP_Name', {
+    Text = 'ESP: Name',
+    Default = false,
+    Callback = function(v)
+        Window:UpdateESPPreview({ Name = v })
+    end,
+})
+
+RightGroupbox:AddToggle('ESP_Health', {
+    Text = 'ESP: Health',
+    Default = false,
+    Callback = function(v)
+        Window:UpdateESPPreview({ Health = v })
+    end,
+})
+
+RightGroupbox:AddToggle('ESP_Weapon', {
+    Text = 'ESP: Weapon',
+    Default = false,
+    Callback = function(v)
+        Window:UpdateESPPreview({ Weapon = v })
+    end,
+})
+
+RightGroupbox:AddToggle('ESP_Animate', {
+    Text = 'ESP Preview Animation',
+    Default = true,
+    Callback = function(v)
+        Window:UpdateESPPreview({ Animate = v })
+    end,
+})
+
 -- New: Dependent toggles (simple, inline dependency)
 RightGroupbox:AddToggle('DependentToggle', {
     Text = 'Dependent toggle (requires ControlToggle)',
@@ -550,7 +606,7 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-print("NEW VERSION LOADED")
+print("sigma 1.1")
 -- You can use the SaveManager:LoadAutoloadConfig()
 -- which has been marked to be one that auto loads!
 SaveManager:LoadAutoloadConfig()
