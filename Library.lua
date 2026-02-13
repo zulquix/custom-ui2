@@ -25,6 +25,17 @@ ProtectGui(ScreenGui);
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
+pcall(function()
+    local Lighting = game:GetService('Lighting')
+    for _, v in next, Lighting:GetChildren() do
+        if v:IsA('BlurEffect') or v:IsA('DepthOfFieldEffect') then
+            if v.Name == 'BlurEffect' or v.Name == 'DepthOfField' or v.Name == 'LinoriaBlur' or v.Name == 'LinoriaDOF' then
+                v:Destroy()
+            end
+        end
+    end
+end)
+
 local ToggleSound = Instance.new('Sound')
 ToggleSound.Name = 'ToggleSound'
 ToggleSound.SoundId = 'rbxassetid://85146328206277'
@@ -4021,8 +4032,8 @@ function Library:CreateWindow(...)
 
         ModalElement.Modal = Toggled;
 
-        -- Visual-only background lock (blur + input capture)
-        Library:SetInteractionLock(Toggled, 14, 0.55)
+        -- Visual-only background lock (input capture)
+        Library:SetInteractionLock(Toggled, nil, 0.55)
 
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
