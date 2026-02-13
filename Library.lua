@@ -2249,9 +2249,9 @@ do
 
             if not Toggle.Value then
                 local reg = Library.RegistryMap[ToggleOuter]
-                ToggleOuter.BorderColor3 = Library.AccentColor
+                ToggleOuter.BorderColor3 = Library.OutlineColor
                 if reg and reg.Properties.BorderColor3 then
-                    reg.Properties.BorderColor3 = 'AccentColor'
+                    reg.Properties.BorderColor3 = 'OutlineColor'
                 end
             end
         end)
