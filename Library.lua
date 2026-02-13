@@ -202,34 +202,37 @@ function PreviewAPI:CreateFloatingESPPreview(config)
     outer.Parent = ScreenGui
 
     local inner = Instance.new('Frame')
-    inner.BackgroundColor3 = self.MainColor
-    inner.BorderColor3 = self.OutlineColor
+    inner.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+    inner.BorderColor3 = Color3.fromRGB(50, 50, 50)
     inner.BorderMode = Enum.BorderMode.Inset
     inner.Position = UDim2.fromOffset(1, 1)
     inner.Size = UDim2.new(1, -2, 1, -2)
     inner.ZIndex = 61
     inner.Parent = outer
 
-    self:AddToRegistry(inner, { BackgroundColor3 = 'MainColor', BorderColor3 = 'OutlineColor' }, true)
+    -- Registry + theming are applied by Library wrapper once attached.
 
-    local title = self:CreateLabel({
-        Position = UDim2.fromOffset(6, 2),
-        Size = UDim2.new(1, -12, 0, 20),
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Text = 'ESP Preview',
-        ZIndex = 62,
-        Parent = inner,
-    })
+    local title = Instance.new('TextLabel')
+    title.BackgroundTransparency = 1
+    title.Position = UDim2.fromOffset(6, 2)
+    title.Size = UDim2.new(1, -12, 0, 20)
+    title.Font = Enum.Font.Code
+    title.TextSize = 14
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = 'ESP Preview'
+    title.ZIndex = 62
+    title.Parent = inner
 
     local viewport = Instance.new('ViewportFrame')
-    viewport.BackgroundColor3 = self.BackgroundColor
-    viewport.BorderColor3 = self.OutlineColor
+    viewport.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    viewport.BorderColor3 = Color3.fromRGB(50, 50, 50)
     viewport.BorderMode = Enum.BorderMode.Inset
     viewport.Position = UDim2.fromOffset(6, 24)
     viewport.Size = UDim2.new(1, -12, 1, -30)
     viewport.ZIndex = 62
     viewport.Parent = inner
-    self:AddToRegistry(viewport, { BackgroundColor3 = 'BackgroundColor', BorderColor3 = 'OutlineColor' }, true)
+    -- Registry + theming are applied by Library wrapper once attached.
 
     local cam = Instance.new('Camera')
     cam.Parent = viewport
@@ -284,6 +287,14 @@ function PreviewAPI:CreateFloatingESPPreview(config)
     end
     setCamera()
 
+    local function syncToHolder()
+        local holder = self.Preview.AttachedHolder
+        if holder and holder.Parent then
+            local offset = self.Preview.AttachedOffset or UDim2.fromOffset(20, 0)
+            outer.Position = holder.Position + offset
+        end
+    end
+
     local function draw()
         if not clone.Parent then return end
         setAllLinesHidden()
@@ -315,7 +326,7 @@ function PreviewAPI:CreateFloatingESPPreview(config)
 
         local lineIdx = 1
         local thickness = 2
-        local color = self.AccentColor
+        local color = (getgenv().Library and getgenv().Library.AccentColor) or Color3.fromRGB(0, 85, 255)
 
         if state.Box then
             local tl = Vector2.new(minX, minY)
@@ -385,10 +396,19 @@ function PreviewAPI:CreateFloatingESPPreview(config)
             if conn then conn:Disconnect() end
             return
         end
+
+        -- Follow the UI window if attached
+        syncToHolder()
+
+        -- Hide preview when UI is closed
+        local holder = self.Preview.AttachedHolder
+        if holder and holder.Parent then
+            outer.Visible = holder.Visible
+        end
         draw()
     end)
 
-    self:MakeDraggable(outer, 20)
+    -- Not draggable: preview follows the UI window instead
 
     self.Preview.Container = outer
     self.Preview.Viewport = viewport
@@ -592,6 +612,11 @@ function Library:ApplyHoverTween(hitbox, target, propsIn, propsOut, tweenInfo)
     hitbox.MouseLeave:Connect(function()
         self:Tween(target, ti, propsOut)
     end)
+end
+
+function Library:AttachPreviewToWindow(windowHolder, offset)
+    self.Preview.AttachedHolder = windowHolder
+    self.Preview.AttachedOffset = typeof(offset) == 'UDim2' and offset or UDim2.fromOffset(20, 0)
 end
 
 function Library:FadeIn(inst, duration)
@@ -3794,6 +3819,8 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
+    Library.CurrentWindowHolder = Outer
+
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
@@ -4361,6 +4388,15 @@ function Library:CreateWindow(...)
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
 
+            if Library.Preview and Library.Preview.Container and Library.Preview.Container.Parent then
+                local ox = Outer.AbsoluteSize.X
+                if ox == 0 then
+                    ox = Config.Size.X.Offset
+                end
+                Library:AttachPreviewToWindow(Outer, UDim2.fromOffset(ox + 14, 0))
+                Library.Preview.Container.Visible = true
+            end
+
             local startPos = Outer.Position
             Outer.Position = startPos + UDim2.fromOffset(0, 18)
             Library:Tween(Outer, TweenInfo.new(FadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = startPos })
@@ -4442,6 +4478,12 @@ function Library:CreateWindow(...)
         task.wait(FadeTime);
 
         Outer.Visible = Toggled;
+
+        if not Toggled then
+            if Library.Preview and Library.Preview.Container and Library.Preview.Container.Parent then
+                Library.Preview.Container.Visible = false
+            end
+        end
 
         if not Toggled then
             -- Reset position in case of interruptions
