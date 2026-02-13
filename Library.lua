@@ -90,6 +90,120 @@ local Library = {
     ScreenGui = ScreenGui;
 };
 
+Library.Style = {
+    -- Fonts
+    FontBody = Enum.Font.Gotham,
+    FontTitle = Enum.Font.GothamMedium,
+
+    TextSizeTitle = 17,
+    TextSizeBody = 14,
+    TextSizeSmall = 12,
+
+    -- Glass surfaces
+    GlassColor = Color3.fromRGB(15, 15, 25),
+    GlassTransparency = 0.16,
+    GlassPanelColor = Color3.fromRGB(18, 18, 28),
+    GlassPanelTransparency = 0.18,
+
+    -- Strokes / glow
+    StrokeColor = Color3.fromRGB(200, 220, 255),
+    StrokeTransparency = 0.52,
+    StrokeThickness = 1,
+
+    -- Corners
+    CornerRadius = UDim.new(0, 12),
+    CornerRadiusLarge = UDim.new(0, 14),
+
+    -- Subtle depth gradient
+    PanelGradientTop = Color3.fromRGB(255, 255, 255),
+    PanelGradientBottom = Color3.fromRGB(210, 220, 235),
+    PanelGradientTransparency = 0.94,
+
+    -- Compact spacing
+    SpacingScale = 0.7,
+
+    -- Micro animations
+    HoverBrighten = 0.06,
+    PressBrighten = 0.10,
+}
+
+function Library:_withCorner(inst, radius)
+    if typeof(inst) ~= 'Instance' then return end
+    local c = Instance.new('UICorner')
+    c.CornerRadius = radius or self.Style.CornerRadius
+    c.Parent = inst
+    return c
+end
+
+function Library:_withStroke(inst, thickness, transparency, color)
+    if typeof(inst) ~= 'Instance' then return end
+    local s = Instance.new('UIStroke')
+    s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    s.LineJoinMode = Enum.LineJoinMode.Round
+    s.Thickness = thickness or self.Style.StrokeThickness
+    s.Transparency = transparency or self.Style.StrokeTransparency
+    s.Color = color or self.Style.StrokeColor
+    s.Parent = inst
+    return s
+end
+
+function Library:_withSubtleGradient(inst)
+    if typeof(inst) ~= 'Instance' then return end
+    local g = Instance.new('UIGradient')
+    g.Rotation = 90
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, self.Style.PanelGradientTop),
+        ColorSequenceKeypoint.new(1, self.Style.PanelGradientBottom),
+    })
+    g.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, self.Style.PanelGradientTransparency),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    g.Parent = inst
+    return g
+end
+
+function Library:_brighten(color, amount)
+    local h, s, v = Color3.toHSV(color)
+    return Color3.fromHSV(h, s, math.clamp(v + (amount or 0.05), 0, 1))
+end
+
+function Library:ApplyGlassFrame(inst, isPanel, addStroke, addCorner, addGradient)
+    if typeof(inst) ~= 'Instance' then return end
+    inst.BackgroundColor3 = isPanel and self.Style.GlassPanelColor or self.Style.GlassColor
+    inst.BackgroundTransparency = isPanel and self.Style.GlassPanelTransparency or self.Style.GlassTransparency
+    if addCorner ~= false then
+        self:_withCorner(inst, isPanel and self.Style.CornerRadius or self.Style.CornerRadiusLarge)
+    end
+    if addStroke then
+        self:_withStroke(inst)
+    end
+    if addGradient then
+        self:_withSubtleGradient(inst)
+    end
+end
+
+function Library:ApplyModernText(inst, isTitle, sizeOverride)
+    if typeof(inst) ~= 'Instance' then return end
+    if inst:IsA('TextLabel') or inst:IsA('TextButton') or inst:IsA('TextBox') then
+        inst.Font = isTitle and self.Style.FontTitle or self.Style.FontBody
+        inst.TextSize = sizeOverride or (isTitle and self.Style.TextSizeTitle or self.Style.TextSizeBody)
+    end
+end
+
+function Library:ApplyMicroHover(hitbox, target, baseColorProvider, tweenInfo)
+    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then return end
+    local ti = tweenInfo or self.Animation.TweenInfoFast
+    hitbox.MouseEnter:Connect(function()
+        local base = (type(baseColorProvider) == 'function') and baseColorProvider() or target.BackgroundColor3
+        self:Tween(target, ti, { BackgroundColor3 = self:_brighten(base, self.Style.HoverBrighten) })
+    end)
+    hitbox.MouseLeave:Connect(function()
+        local base = (type(baseColorProvider) == 'function') and baseColorProvider() or target.BackgroundColor3
+        self:Tween(target, ti, { BackgroundColor3 = base })
+    end)
+end
+
 Library.Animation = {
     Enabled = true,
     TweenInfoFast = TweenInfo.new(0.10, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
@@ -184,13 +298,22 @@ function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
     InteractionBlocker.Modal = self.InteractionLocked
     InteractionBlocker.BackgroundTransparency = 1
 
+    local dim = (type(dimTransparency) == 'number') and dimTransparency or 0.34
+
     if not self.InteractionLocked then
+        InteractionBlocker.BackgroundTransparency = 1
         task.delay(0.25, function()
             InteractionBlocker.Visible = false
             InteractionBlocker.Modal = false
         end)
         return
     end
+
+    InteractionBlocker.Visible = true
+    InteractionBlocker.BackgroundTransparency = 1
+    pcall(function()
+        TweenService:Create(InteractionBlocker, (Library.Animation and Library.Animation.TweenInfoSlow) or TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundTransparency = dim }):Play()
+    end)
 end
 
 function Library:Tween(inst, tweenInfo, props)
