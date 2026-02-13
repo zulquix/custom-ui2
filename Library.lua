@@ -29,9 +29,7 @@ pcall(function()
     local Lighting = game:GetService('Lighting')
     for _, v in next, Lighting:GetChildren() do
         if v:IsA('BlurEffect') or v:IsA('DepthOfFieldEffect') then
-            if v.Name == 'BlurEffect' or v.Name == 'DepthOfField' or v.Name == 'LinoriaBlur' or v.Name == 'LinoriaDOF' then
-                v:Destroy()
-            end
+            v:Destroy()
         end
     end
 end)
