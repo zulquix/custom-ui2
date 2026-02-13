@@ -2291,12 +2291,15 @@ do
 
             Library:Tween(ToggleInner, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
 
+            ToggleIndicator.BackgroundColor3 = Library.AccentColor
+            ToggleIndicator.BorderColor3 = Library.AccentColorDark
+
             local indTi = (Library.Animation and Library.Animation.TweenInfoSpringFast) or nil
             Library:Tween(ToggleIndicator, indTi, {
                 Size = Toggle.Value and UDim2.new(0, 7, 0, 7) or UDim2.new(0, 0, 0, 0),
                 Position = Toggle.Value and UDim2.fromOffset(3, 3) or UDim2.fromOffset(6, 6),
                 BackgroundTransparency = Toggle.Value and 0 or 1,
-                BorderSizePixel = Toggle.Value and 0 or 0,
+                BorderColor3 = Toggle.Value and Library.AccentColorDark or Library.AccentColorDark,
             })
 
             local innerReg = Library.RegistryMap[ToggleInner]
