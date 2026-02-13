@@ -33,6 +33,14 @@ BlurEffect.Size = 0
 BlurEffect.Enabled = false
 BlurEffect.Parent = Lighting
 
+local DepthOfField = Instance.new('DepthOfFieldEffect')
+DepthOfField.Enabled = false
+DepthOfField.FarIntensity = 1
+DepthOfField.FocusDistance = 0
+DepthOfField.InFocusRadius = 0
+DepthOfField.NearIntensity = 1
+DepthOfField.Parent = Lighting
+
 local InteractionBlocker = Instance.new('TextButton')
 InteractionBlocker.Name = 'InteractionBlocker'
 InteractionBlocker.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -49,8 +57,354 @@ InteractionBlocker.MouseButton1Down:Connect(function() end)
 InteractionBlocker.MouseButton2Down:Connect(function() end)
 
 local function setBlur(amount)
-    BlurEffect.Enabled = amount > 0
+    local enabled = amount > 0
+    BlurEffect.Enabled = enabled
     BlurEffect.Size = amount
+    -- Some experiences/executors behave oddly with BlurEffect; this DOF layer helps ensure full-screen blur feel.
+    DepthOfField.Enabled = enabled
+end
+
+-- Floating ESP preview (standalone, outside the window)
+-- NOTE: declared on a temporary table, then attached to `Library` once `Library` exists.
+local PreviewAPI = {}
+PreviewAPI.Preview = {
+    Enabled = false,
+    State = {
+        Box = false,
+        Skeleton = false,
+        Name = false,
+        Health = false,
+        Weapon = false,
+    },
+}
+
+local function safeDestroy(inst)
+    pcall(function()
+        if inst then inst:Destroy() end
+    end)
+end
+
+local function getHumanoidAndRoot(model)
+    if not model then return nil, nil end
+    local hum = model:FindFirstChildOfClass('Humanoid')
+    local root = model:FindFirstChild('HumanoidRootPart')
+    return hum, root
+end
+
+function PreviewAPI:_createPreviewOverlay(parent)
+    local overlay = Instance.new('Frame')
+    overlay.BackgroundTransparency = 1
+    overlay.Size = UDim2.fromScale(1, 1)
+    overlay.ZIndex = 50
+    overlay.Parent = parent
+
+    local lines = {}
+    local function mkLine()
+        local f = Instance.new('Frame')
+        f.BorderSizePixel = 0
+        f.BackgroundColor3 = Color3.fromRGB(80, 220, 120)
+        f.BackgroundTransparency = 0
+        f.Visible = false
+        f.ZIndex = 51
+        f.Parent = overlay
+        return f
+    end
+
+    for i = 1, 32 do
+        lines[i] = mkLine()
+    end
+
+    local nameLabel = Instance.new('TextLabel')
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = ''
+    nameLabel.TextSize = 14
+    nameLabel.Font = Enum.Font.Code
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Visible = false
+    nameLabel.ZIndex = 52
+    nameLabel.Parent = overlay
+
+    local healthLabel = nameLabel:Clone()
+    healthLabel.Parent = overlay
+
+    local weaponLabel = nameLabel:Clone()
+    weaponLabel.Parent = overlay
+
+    return {
+        Overlay = overlay,
+        Lines = lines,
+        Name = nameLabel,
+        Health = healthLabel,
+        Weapon = weaponLabel,
+    }
+end
+
+local function setLine(line, p1, p2, thickness)
+    local dx = p2.X - p1.X
+    local dy = p2.Y - p1.Y
+    local len = math.sqrt(dx * dx + dy * dy)
+    line.Size = UDim2.fromOffset(len, thickness)
+    line.Position = UDim2.fromOffset(p1.X, p1.Y)
+    line.Rotation = math.deg(math.atan2(dy, dx))
+    line.Visible = true
+end
+
+function PreviewAPI:_previewWorldToViewportPoint(cam, worldPos)
+    local v, onScreen = cam:WorldToViewportPoint(worldPos)
+    return Vector2.new(v.X, v.Y), onScreen, v.Z
+end
+
+function PreviewAPI:_previewGetRigPoints(model)
+    local pts = {}
+    local function partPos(name)
+        local p = model:FindFirstChild(name)
+        if p and p:IsA('BasePart') then
+            return p.Position
+        end
+        return nil
+    end
+
+    pts.Head = partPos('Head')
+    pts.HRP = partPos('HumanoidRootPart')
+    pts.UpperTorso = partPos('UpperTorso') or partPos('Torso')
+    pts.LowerTorso = partPos('LowerTorso')
+    pts.LeftUpperArm = partPos('LeftUpperArm') or partPos('Left Arm')
+    pts.LeftLowerArm = partPos('LeftLowerArm')
+    pts.LeftHand = partPos('LeftHand')
+    pts.RightUpperArm = partPos('RightUpperArm') or partPos('Right Arm')
+    pts.RightLowerArm = partPos('RightLowerArm')
+    pts.RightHand = partPos('RightHand')
+    pts.LeftUpperLeg = partPos('LeftUpperLeg') or partPos('Left Leg')
+    pts.LeftLowerLeg = partPos('LeftLowerLeg')
+    pts.LeftFoot = partPos('LeftFoot')
+    pts.RightUpperLeg = partPos('RightUpperLeg') or partPos('Right Leg')
+    pts.RightLowerLeg = partPos('RightLowerLeg')
+    pts.RightFoot = partPos('RightFoot')
+
+    return pts
+end
+
+function PreviewAPI:CreateFloatingESPPreview(config)
+    config = type(config) == 'table' and config or {}
+
+    if self.Preview.Container and self.Preview.Container.Parent then
+        return self.Preview
+    end
+
+    local outer = Instance.new('Frame')
+    outer.Name = 'FloatingESPPreview'
+    outer.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    outer.BorderColor3 = Color3.new(0, 0, 0)
+    outer.Position = config.Position or UDim2.fromOffset(760, 120)
+    outer.Size = config.Size or UDim2.fromOffset(260, 360)
+    outer.Visible = true
+    outer.ZIndex = 60
+    outer.Parent = ScreenGui
+
+    local inner = Instance.new('Frame')
+    inner.BackgroundColor3 = self.MainColor
+    inner.BorderColor3 = self.OutlineColor
+    inner.BorderMode = Enum.BorderMode.Inset
+    inner.Position = UDim2.fromOffset(1, 1)
+    inner.Size = UDim2.new(1, -2, 1, -2)
+    inner.ZIndex = 61
+    inner.Parent = outer
+
+    self:AddToRegistry(inner, { BackgroundColor3 = 'MainColor', BorderColor3 = 'OutlineColor' }, true)
+
+    local title = self:CreateLabel({
+        Position = UDim2.fromOffset(6, 2),
+        Size = UDim2.new(1, -12, 0, 20),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Text = 'ESP Preview',
+        ZIndex = 62,
+        Parent = inner,
+    })
+
+    local viewport = Instance.new('ViewportFrame')
+    viewport.BackgroundColor3 = self.BackgroundColor
+    viewport.BorderColor3 = self.OutlineColor
+    viewport.BorderMode = Enum.BorderMode.Inset
+    viewport.Position = UDim2.fromOffset(6, 24)
+    viewport.Size = UDim2.new(1, -12, 1, -30)
+    viewport.ZIndex = 62
+    viewport.Parent = inner
+    self:AddToRegistry(viewport, { BackgroundColor3 = 'BackgroundColor', BorderColor3 = 'OutlineColor' }, true)
+
+    local cam = Instance.new('Camera')
+    cam.Parent = viewport
+    viewport.CurrentCamera = cam
+
+    local wm = Instance.new('WorldModel')
+    wm.Parent = viewport
+
+    local overlay = self:_createPreviewOverlay(viewport)
+
+    -- Clone LocalPlayer character
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local clone = char:Clone()
+    clone.Name = 'PreviewAvatar'
+    for _, d in next, clone:GetDescendants() do
+        if d:IsA('Script') or d:IsA('LocalScript') then
+            safeDestroy(d)
+        elseif d:IsA('BasePart') then
+            d.Anchored = true
+            d.CanCollide = false
+        end
+    end
+    clone.Parent = wm
+
+    local hum, root = getHumanoidAndRoot(clone)
+    local weaponName = ''
+
+    local function updateWeapon()
+        weaponName = ''
+        local tool = char:FindFirstChildOfClass('Tool')
+        if tool then weaponName = tool.Name end
+    end
+    updateWeapon()
+
+    local function setAllLinesHidden()
+        for i = 1, #overlay.Lines do
+            overlay.Lines[i].Visible = false
+        end
+    end
+
+    local function setLabelsHidden()
+        overlay.Name.Visible = false
+        overlay.Health.Visible = false
+        overlay.Weapon.Visible = false
+    end
+
+    local function setCamera()
+        if root then
+            local center = root.Position + Vector3.new(0, 2.2, 0)
+            cam.CFrame = CFrame.new(center + Vector3.new(0, 1.2, 8), center)
+        end
+    end
+    setCamera()
+
+    local function draw()
+        if not clone.Parent then return end
+        setAllLinesHidden()
+        setLabelsHidden()
+        setCamera()
+
+        local state = self.Preview.State
+        if not state then return end
+
+        -- Build 2D bounds from parts
+        local minX, minY = math.huge, math.huge
+        local maxX, maxY = -math.huge, -math.huge
+        local anyOn = false
+
+        for _, part in next, clone:GetChildren() do
+            if part:IsA('BasePart') then
+                local p, on = self:_previewWorldToViewportPoint(cam, part.Position)
+                if on then
+                    anyOn = true
+                    minX = math.min(minX, p.X)
+                    minY = math.min(minY, p.Y)
+                    maxX = math.max(maxX, p.X)
+                    maxY = math.max(maxY, p.Y)
+                end
+            end
+        end
+
+        if not anyOn then return end
+
+        local lineIdx = 1
+        local thickness = 2
+        local color = self.AccentColor
+
+        if state.Box then
+            local tl = Vector2.new(minX, minY)
+            local tr = Vector2.new(maxX, minY)
+            local bl = Vector2.new(minX, maxY)
+            local br = Vector2.new(maxX, maxY)
+            overlay.Lines[lineIdx].BackgroundColor3 = color; setLine(overlay.Lines[lineIdx], tl, tr, thickness); lineIdx += 1
+            overlay.Lines[lineIdx].BackgroundColor3 = color; setLine(overlay.Lines[lineIdx], tr, br, thickness); lineIdx += 1
+            overlay.Lines[lineIdx].BackgroundColor3 = color; setLine(overlay.Lines[lineIdx], br, bl, thickness); lineIdx += 1
+            overlay.Lines[lineIdx].BackgroundColor3 = color; setLine(overlay.Lines[lineIdx], bl, tl, thickness); lineIdx += 1
+        end
+
+        if state.Skeleton then
+            local pts = self:_previewGetRigPoints(clone)
+            local function link(a, b)
+                if not a or not b then return end
+                local p1, on1 = self:_previewWorldToViewportPoint(cam, a)
+                local p2, on2 = self:_previewWorldToViewportPoint(cam, b)
+                if on1 and on2 and overlay.Lines[lineIdx] then
+                    overlay.Lines[lineIdx].BackgroundColor3 = color
+                    setLine(overlay.Lines[lineIdx], p1, p2, 1)
+                    lineIdx += 1
+                end
+            end
+
+            link(pts.Head, pts.UpperTorso)
+            link(pts.UpperTorso, pts.LowerTorso)
+            link(pts.UpperTorso, pts.LeftUpperArm)
+            link(pts.LeftUpperArm, pts.LeftLowerArm)
+            link(pts.LeftLowerArm, pts.LeftHand)
+            link(pts.UpperTorso, pts.RightUpperArm)
+            link(pts.RightUpperArm, pts.RightLowerArm)
+            link(pts.RightLowerArm, pts.RightHand)
+            link(pts.LowerTorso, pts.LeftUpperLeg)
+            link(pts.LeftUpperLeg, pts.LeftLowerLeg)
+            link(pts.LeftLowerLeg, pts.LeftFoot)
+            link(pts.LowerTorso, pts.RightUpperLeg)
+            link(pts.RightUpperLeg, pts.RightLowerLeg)
+            link(pts.RightLowerLeg, pts.RightFoot)
+        end
+
+        if state.Name then
+            overlay.Name.Text = LocalPlayer.Name
+            overlay.Name.Position = UDim2.fromOffset(minX, minY - 18)
+            overlay.Name.Size = UDim2.fromOffset(math.max(60, maxX - minX), 18)
+            overlay.Name.Visible = true
+        end
+
+        if state.Health and hum then
+            overlay.Health.Text = string.format('HP: %d', math.floor(hum.Health))
+            overlay.Health.Position = UDim2.fromOffset(minX, maxY)
+            overlay.Health.Size = UDim2.fromOffset(math.max(60, maxX - minX), 18)
+            overlay.Health.Visible = true
+        end
+
+        if state.Weapon then
+            overlay.Weapon.Text = weaponName ~= '' and ('Weapon: ' .. weaponName) or 'Weapon: None'
+            overlay.Weapon.Position = UDim2.fromOffset(minX, maxY + 16)
+            overlay.Weapon.Size = UDim2.fromOffset(math.max(60, maxX - minX), 18)
+            overlay.Weapon.Visible = true
+        end
+    end
+
+    local conn
+    conn = RenderStepped:Connect(function()
+        if not outer.Parent then
+            if conn then conn:Disconnect() end
+            return
+        end
+        draw()
+    end)
+
+    self:MakeDraggable(outer, 20)
+
+    self.Preview.Container = outer
+    self.Preview.Viewport = viewport
+    self.Preview.Model = clone
+    self.Preview.Connection = conn
+    self.Preview.Enabled = true
+    return self.Preview
+end
+
+function PreviewAPI:SetPreviewESPState(state)
+    if type(state) ~= 'table' then return end
+    for k, v in next, state do
+        if self.Preview.State[k] ~= nil then
+            self.Preview.State[k] = not not v
+        end
+    end
 end
 
 local Toggles = {};
@@ -81,6 +435,14 @@ local Library = {
     Signals = {};
     ScreenGui = ScreenGui;
 };
+
+-- Attach preview API now that Library exists
+Library.Preview = PreviewAPI.Preview
+Library._createPreviewOverlay = PreviewAPI._createPreviewOverlay
+Library._previewWorldToViewportPoint = PreviewAPI._previewWorldToViewportPoint
+Library._previewGetRigPoints = PreviewAPI._previewGetRigPoints
+Library.CreateFloatingESPPreview = PreviewAPI.CreateFloatingESPPreview
+Library.SetPreviewESPState = PreviewAPI.SetPreviewESPState
 
 Library.Animation = {
     Enabled = true,
@@ -164,18 +526,46 @@ end
 function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
     self.InteractionLocked = not not enabled
 
-    InteractionBlocker.Visible = self.InteractionLocked
+    InteractionBlocker.Visible = true
     InteractionBlocker.ZIndex = 0
-    InteractionBlocker.BackgroundTransparency = (type(dimTransparency) == 'number') and dimTransparency or 0.55
 
     local amt = (type(blurAmount) == 'number') and blurAmount or 14
+    local dim = (type(dimTransparency) == 'number') and dimTransparency or 0.55
+
+    local ti = self.Animation and self.Animation.TweenInfoSlow or TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
     if not self.InteractionLocked then
-        InteractionBlocker.BackgroundTransparency = 1
-        setBlur(0)
+        -- fade out dim + blur
+        pcall(function()
+            TweenService:Create(InteractionBlocker, ti, { BackgroundTransparency = 1 }):Play()
+        end)
+        if self.Animation and self.Animation.Enabled then
+            pcall(function()
+                TweenService:Create(BlurEffect, ti, { Size = 0 }):Play()
+            end)
+        else
+            BlurEffect.Size = 0
+        end
+        task.delay(ti.Time, function()
+            setBlur(0)
+            InteractionBlocker.Visible = false
+        end)
         return
     end
 
+    -- fade in dim + blur
+    InteractionBlocker.BackgroundTransparency = 1
     setBlur(amt)
+    if self.Animation and self.Animation.Enabled then
+        pcall(function()
+            TweenService:Create(BlurEffect, ti, { Size = amt }):Play()
+        end)
+    else
+        BlurEffect.Size = amt
+    end
+    pcall(function()
+        TweenService:Create(InteractionBlocker, ti, { BackgroundTransparency = dim }):Play()
+    end)
 end
 
 function Library:Tween(inst, tweenInfo, props)
@@ -3454,184 +3844,6 @@ function Library:CreateWindow(...)
         Parent = MainSectionOuter;
     });
 
-    -- Right-side ESP preview panel (visual-only).
-    local EspPreviewOuter = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor,
-        BorderColor3 = Library.OutlineColor,
-        BorderMode = Enum.BorderMode.Inset,
-        Position = UDim2.new(1, -176, 0, 30),
-        Size = UDim2.new(0, 168, 1, -38),
-        ZIndex = 3,
-        Parent = MainSectionInner,
-        Visible = true,
-    })
-
-    Library:AddToRegistry(EspPreviewOuter, {
-        BackgroundColor3 = 'MainColor',
-        BorderColor3 = 'OutlineColor',
-    })
-
-    local EspTitle = Library:CreateLabel({
-        Position = UDim2.new(0, 6, 0, 4),
-        Size = UDim2.new(1, -12, 0, 18),
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Text = 'ESP Preview',
-        ZIndex = 4,
-        Parent = EspPreviewOuter,
-    })
-
-    local EspViewport = Library:Create('Frame', {
-        BackgroundColor3 = Library.BackgroundColor,
-        BorderColor3 = Library.OutlineColor,
-        BorderMode = Enum.BorderMode.Inset,
-        Position = UDim2.new(0, 6, 0, 26),
-        Size = UDim2.new(1, -12, 0, 160),
-        ZIndex = 4,
-        Parent = EspPreviewOuter,
-    })
-
-    Library:AddToRegistry(EspViewport, {
-        BackgroundColor3 = 'BackgroundColor',
-        BorderColor3 = 'OutlineColor',
-    })
-
-    local Viewport = Library:Create('ViewportFrame', {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        ZIndex = 5,
-        Parent = EspViewport,
-    })
-
-    local Cam = Instance.new('Camera')
-    Cam.Parent = Viewport
-    Viewport.CurrentCamera = Cam
-
-    local WorldModel = Instance.new('WorldModel')
-    WorldModel.Parent = Viewport
-
-    local function mkPart(size, pos)
-        local p = Instance.new('Part')
-        p.Anchored = true
-        p.CanCollide = false
-        p.Material = Enum.Material.SmoothPlastic
-        p.Size = size
-        p.CFrame = CFrame.new(pos)
-        p.Color = Color3.fromRGB(200, 200, 200)
-        p.Parent = WorldModel
-        return p
-    end
-
-    -- Simple blocky humanoid
-    local Torso = mkPart(Vector3.new(2, 2.5, 1), Vector3.new(0, 1.5, 0))
-    local Head = mkPart(Vector3.new(1.6, 1.6, 1.6), Vector3.new(0, 3.3, 0))
-    local LArm = mkPart(Vector3.new(0.7, 2.2, 0.7), Vector3.new(-1.6, 1.6, 0))
-    local RArm = mkPart(Vector3.new(0.7, 2.2, 0.7), Vector3.new(1.6, 1.6, 0))
-    local LLeg = mkPart(Vector3.new(0.8, 2.4, 0.8), Vector3.new(-0.6, -0.2, 0))
-    local RLeg = mkPart(Vector3.new(0.8, 2.4, 0.8), Vector3.new(0.6, -0.2, 0))
-
-    Cam.CFrame = CFrame.new(Vector3.new(0, 2.0, 7), Vector3.new(0, 1.8, 0))
-
-    local StatusArea = Library:Create('Frame', {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 6, 0, 192),
-        Size = UDim2.new(1, -12, 1, -198),
-        ZIndex = 4,
-        Parent = EspPreviewOuter,
-    })
-
-    local Layout = Instance.new('UIListLayout')
-    Layout.FillDirection = Enum.FillDirection.Vertical
-    Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 4)
-    Layout.Parent = StatusArea
-
-    local function mkStatusRow(name)
-        local row = Library:Create('Frame', {
-            BackgroundColor3 = Library.BackgroundColor,
-            BorderColor3 = Library.OutlineColor,
-            BorderMode = Enum.BorderMode.Inset,
-            Size = UDim2.new(1, 0, 0, 18),
-            ZIndex = 4,
-            Parent = StatusArea,
-        })
-        Library:AddToRegistry(row, { BackgroundColor3 = 'BackgroundColor', BorderColor3 = 'OutlineColor' })
-
-        local dot = Library:Create('Frame', {
-            BackgroundColor3 = Color3.fromRGB(255, 80, 80),
-            BorderSizePixel = 0,
-            Position = UDim2.new(0, 5, 0.5, 0),
-            AnchorPoint = Vector2.new(0, 0.5),
-            Size = UDim2.fromOffset(8, 8),
-            ZIndex = 5,
-            Parent = row,
-        })
-        local corner = Instance.new('UICorner')
-        corner.CornerRadius = UDim.new(1, 0)
-        corner.Parent = dot
-
-        local label = Library:CreateLabel({
-            BackgroundTransparency = 1,
-            Position = UDim2.new(0, 18, 0, 0),
-            Size = UDim2.new(1, -18, 1, 0),
-            TextSize = 13,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Text = name,
-            ZIndex = 5,
-            Parent = row,
-        })
-        return { Row = row, Dot = dot, Label = label }
-    end
-
-    local StatusRows = {
-        Box = mkStatusRow('Bounding Box'),
-        Name = mkStatusRow('Name'),
-        Health = mkStatusRow('Health'),
-        Weapon = mkStatusRow('Weapon'),
-    }
-
-    local function applyStatus(row, on)
-        row.Dot.BackgroundColor3 = on and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(255, 80, 80)
-        row.Label.TextColor3 = on and Color3.fromRGB(210, 255, 225) or Library.FontColor
-    end
-
-    local EspPreviewState = {
-        Box = false,
-        Name = false,
-        Health = false,
-        Weapon = false,
-        Animate = true,
-    }
-
-    local function updatePreview()
-        applyStatus(StatusRows.Box, EspPreviewState.Box)
-        applyStatus(StatusRows.Name, EspPreviewState.Name)
-        applyStatus(StatusRows.Health, EspPreviewState.Health)
-        applyStatus(StatusRows.Weapon, EspPreviewState.Weapon)
-
-        -- Highlight body parts based on enabled elements
-        Torso.Color = EspPreviewState.Box and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
-        Head.Color = EspPreviewState.Name and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
-        LLeg.Color = EspPreviewState.Health and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
-        RLeg.Color = EspPreviewState.Health and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
-        RArm.Color = EspPreviewState.Weapon and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
-        LArm.Color = EspPreviewState.Weapon and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
-    end
-
-    updatePreview()
-
-    -- Subtle limb animation (visual only)
-    local animT = 0
-    Library:GiveSignal(RenderStepped:Connect(function(dt)
-        if not Outer.Visible then return end
-        if not EspPreviewOuter.Visible then return end
-        if not EspPreviewState.Animate then return end
-        animT = animT + dt
-        local swing = math.sin(animT * 2) * 0.25
-        LArm.CFrame = CFrame.new(-1.6, 1.6, 0) * CFrame.Angles(swing, 0, 0)
-        RArm.CFrame = CFrame.new(1.6, 1.6, 0) * CFrame.Angles(-swing, 0, 0)
-    end))
-
     Library:AddToRegistry(MainSectionInner, {
         BackgroundColor3 = 'BackgroundColor';
     });
@@ -3651,13 +3863,11 @@ function Library:CreateWindow(...)
         Parent = TabArea;
     });
 
-    local EspPreviewPadding = 176
-
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
         Position = UDim2.new(0, 8, 0, 30);
-        Size = UDim2.new(1, -16 - EspPreviewPadding, 1, -38);
+        Size = UDim2.new(1, -16, 1, -38);
         ZIndex = 2;
         Parent = MainSectionInner;
     });
@@ -3667,29 +3877,6 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
-
-    function Window:SetESPPreviewVisible(visible)
-        EspPreviewOuter.Visible = not not visible
-        TabContainer.Size = UDim2.new(1, -16 - (EspPreviewOuter.Visible and EspPreviewPadding or 0), 1, -38)
-    end
-
-    function Window:UpdateESPPreview(state)
-        if type(state) ~= 'table' then
-            return
-        end
-        for k, v in next, state do
-            if EspPreviewState[k] ~= nil then
-                EspPreviewState[k] = not not v
-            end
-        end
-        updatePreview()
-    end
-
-    Window.EspPreview = {
-        Container = EspPreviewOuter,
-        Viewport = Viewport,
-        State = EspPreviewState,
-    }
 
     -- Animated accent glow border (visual-only)
     local Glow = Library:Create('UIStroke', {
@@ -4269,7 +4456,7 @@ function Library:CreateWindow(...)
             if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.ToggleKeybind.Value then
                 task.spawn(Library.Toggle)
             end
-        elseif Input.KeyCode == Enum.KeyCode.RightControl or (Input.KeyCode == Enum.KeyCode.RightShift and (not Processed)) then
+        elseif Input.KeyCode == Enum.KeyCode.RightShift and (not Processed) then
             task.spawn(Library.Toggle)
         end
     end))
