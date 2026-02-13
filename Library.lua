@@ -33,14 +33,6 @@ BlurEffect.Size = 0
 BlurEffect.Enabled = false
 BlurEffect.Parent = Lighting
 
-local DepthOfField = Instance.new('DepthOfFieldEffect')
-DepthOfField.Enabled = false
-DepthOfField.FarIntensity = 1
-DepthOfField.FocusDistance = 0
-DepthOfField.InFocusRadius = 0
-DepthOfField.NearIntensity = 1
-DepthOfField.Parent = Lighting
-
 local InteractionBlocker = Instance.new('TextButton')
 InteractionBlocker.Name = 'InteractionBlocker'
 InteractionBlocker.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -60,8 +52,6 @@ local function setBlur(amount)
     local enabled = amount > 0
     BlurEffect.Enabled = enabled
     BlurEffect.Size = amount
-    -- Some experiences/executors behave oddly with BlurEffect; this DOF layer helps ensure full-screen blur feel.
-    DepthOfField.Enabled = enabled
 end
 
 local Toggles = {};
@@ -293,8 +283,14 @@ end
 
 function Library:_applyAccentColor(color)
     self.AccentColor = color
+    if self.ActiveTheme and self.Themes and self.Themes[self.ActiveTheme] then
+        self.Themes[self.ActiveTheme].AccentColor = color
+    end
     self.AccentColorDark = self:GetDarkerColor(self.AccentColor)
     self:UpdateColorsUsingRegistry()
+    if type(self.OnAccentColorChanged) == 'function' then
+        self:SafeCallback(self.OnAccentColorChanged, color)
+    end
 end
 
 local RainbowStep = 0
@@ -637,6 +633,34 @@ function Library:GiveSignal(Signal)
 end
 
 function Library:Unload()
+    pcall(function()
+        -- Ensure visual lock is removed
+        Library:SetInteractionLock(false)
+    end)
+
+    -- Untoggle everything for clean exit
+    pcall(function()
+        for _, t in next, Toggles do
+            if type(t) == 'table' and t.Type == 'Toggle' and t.Value then
+                t:SetValue(false)
+            end
+        end
+    end)
+
+    pcall(function()
+        if Library.KeybindContainer then
+            for _, v in next, Library.KeybindContainer:GetChildren() do
+                if v:IsA('TextLabel') then
+                    v.Visible = false
+                end
+            end
+        end
+    end)
+
+    pcall(function()
+        Library:Cleanup()
+    end)
+
     -- Unload all of the signals
     for Idx = #Library.Signals, 1, -1 do
         local Connection = table.remove(Library.Signals, Idx)
