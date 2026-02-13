@@ -76,7 +76,7 @@ local Library = {
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
     BackgroundColor = Color3.fromRGB(20, 20, 20);
-    AccentColor = Color3.fromRGB(0, 85, 255);
+    AccentColor = Color3.fromRGB(0, 186, 255);
     OutlineColor = Color3.fromRGB(50, 50, 50);
     RiskColor = Color3.fromRGB(255, 50, 50),
 
@@ -103,41 +103,41 @@ Library.Animation = {
 Library.PerformanceMode = false;
 
 Library.Themes = {
-    Default = {
+    SodiumDefault = {
         FontColor = Color3.fromRGB(255, 255, 255),
         MainColor = Color3.fromRGB(28, 28, 28),
         BackgroundColor = Color3.fromRGB(20, 20, 20),
-        AccentColor = Color3.fromRGB(0, 85, 255),
+        AccentColor = Color3.fromRGB(0, 186, 255),
         OutlineColor = Color3.fromRGB(50, 50, 50),
         RiskColor = Color3.fromRGB(255, 50, 50),
     },
-    Dark = {
+    SodiumMidnight = {
         FontColor = Color3.fromRGB(235, 235, 235),
-        MainColor = Color3.fromRGB(22, 22, 22),
-        BackgroundColor = Color3.fromRGB(16, 16, 16),
-        AccentColor = Color3.fromRGB(120, 170, 255),
-        OutlineColor = Color3.fromRGB(45, 45, 45),
+        MainColor = Color3.fromRGB(18, 18, 22),
+        BackgroundColor = Color3.fromRGB(14, 14, 18),
+        AccentColor = Color3.fromRGB(0, 186, 255),
+        OutlineColor = Color3.fromRGB(42, 42, 52),
         RiskColor = Color3.fromRGB(255, 85, 85),
     },
-    Ocean = {
+    SodiumIce = {
         FontColor = Color3.fromRGB(235, 245, 255),
-        MainColor = Color3.fromRGB(18, 28, 34),
-        BackgroundColor = Color3.fromRGB(14, 22, 26),
-        AccentColor = Color3.fromRGB(0, 180, 255),
-        OutlineColor = Color3.fromRGB(45, 70, 80),
+        MainColor = Color3.fromRGB(16, 24, 28),
+        BackgroundColor = Color3.fromRGB(12, 18, 22),
+        AccentColor = Color3.fromRGB(0, 210, 255),
+        OutlineColor = Color3.fromRGB(38, 56, 66),
         RiskColor = Color3.fromRGB(255, 85, 85),
     },
-    Sunset = {
-        FontColor = Color3.fromRGB(255, 240, 235),
-        MainColor = Color3.fromRGB(34, 20, 20),
-        BackgroundColor = Color3.fromRGB(26, 16, 16),
-        AccentColor = Color3.fromRGB(255, 120, 80),
-        OutlineColor = Color3.fromRGB(85, 55, 55),
+    SodiumRose = {
+        FontColor = Color3.fromRGB(255, 240, 245),
+        MainColor = Color3.fromRGB(28, 18, 22),
+        BackgroundColor = Color3.fromRGB(22, 14, 18),
+        AccentColor = Color3.fromRGB(255, 90, 140),
+        OutlineColor = Color3.fromRGB(60, 40, 48),
         RiskColor = Color3.fromRGB(255, 85, 85),
     },
 };
 
-Library.ActiveTheme = 'Default';
+Library.ActiveTheme = 'SodiumDefault';
 Library.RGB = {
     Enabled = false,
     Speed = 3, -- higher = faster
@@ -2222,9 +2222,25 @@ do
             Parent = ToggleOuter;
         });
 
+        local ToggleIndicator = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderColor3 = Library.AccentColorDark;
+            BorderMode = Enum.BorderMode.Inset;
+            Size = UDim2.new(0, 7, 0, 7);
+            Position = UDim2.fromOffset(3, 3);
+            ZIndex = 7;
+            Visible = true;
+            Parent = ToggleInner;
+        });
+
         Library:AddToRegistry(ToggleInner, {
             BackgroundColor3 = 'MainColor';
             BorderColor3 = 'OutlineColor';
+        });
+
+        Library:AddToRegistry(ToggleIndicator, {
+            BackgroundColor3 = 'AccentColor';
+            BorderColor3 = 'AccentColorDark';
         });
 
         local ToggleLabel = Library:CreateLabel({
@@ -2266,17 +2282,30 @@ do
         end
 
         function Toggle:Display()
-            local bg = Toggle.Value and Library.AccentColor or Library.MainColor
-            local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
+            local innerReg = Library.RegistryMap[ToggleInner]
+            local accent = (innerReg and innerReg.Properties.BackgroundColor3 == 'AccentColor' and Library.AccentColor) or Library.AccentColor
+            local main = Library.MainColor
+            local outline = Library.OutlineColor
+            local accentDark = Library.AccentColorDark
+
+            local bg = Toggle.Value and accent or main
+            local bc = Toggle.Value and accentDark or outline
             local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
 
-            Library:Tween(ToggleInner, ti, {
-                BackgroundColor3 = bg,
-                BorderColor3 = bc,
+            Library:Tween(ToggleInner, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
+
+            local indTi = (Library.Animation and Library.Animation.TweenInfoSpringFast) or nil
+            Library:Tween(ToggleIndicator, indTi, {
+                Size = Toggle.Value and UDim2.new(0, 7, 0, 7) or UDim2.new(0, 0, 0, 0),
+                Position = Toggle.Value and UDim2.fromOffset(3, 3) or UDim2.fromOffset(6, 6),
+                BackgroundTransparency = Toggle.Value and 0 or 1,
+                BorderSizePixel = Toggle.Value and 0 or 0,
             })
 
-            Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
-            Library.RegistryMap[ToggleInner].Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
+            if innerReg then
+                innerReg.Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
+                innerReg.Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
+            end
         end;
 
         function Toggle:OnChanged(Func)
@@ -2356,6 +2385,11 @@ do
                 Library:AttemptSave();
             end;
         end);
+
+        Library:ApplyClickTween(ToggleRegion, ToggleInner,
+            { Size = UDim2.new(1, -1, 1, -1), Position = UDim2.fromOffset(0.5, 0.5) },
+            { Size = UDim2.new(1, 0, 1, 0), Position = UDim2.fromOffset(0, 0) }
+        )
 
         if Toggle.Risky then
             Library:RemoveFromRegistry(ToggleLabel)
