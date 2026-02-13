@@ -20,12 +20,6 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.2
 })
 
--- Floating ESP preview (standalone)
-Library:CreateFloatingESPPreview()
-
--- Ensure ESP preview panel is visible (visual-only)
--- Window:SetESPPreviewVisible(true)
-
 -- Modern theme additions (built-in + custom)
 Library:RegisterCustomTheme('PurpleNight', {
     AccentColor = Color3.fromRGB(180, 80, 255),
@@ -452,58 +446,6 @@ Tab2:AddToggle('Tab2Toggle', { Text = 'Tab2 Toggle' });
 -- Dependency box example:
 local RightGroupbox = Tabs.Main:AddRightGroupbox('Groupbox #3');
 RightGroupbox:AddToggle('ControlToggle', { Text = 'Dependency box toggle' });
-
--- Visual-only ESP controls that drive the ESP preview panel
-RightGroupbox:AddDivider()
-RightGroupbox:AddLabel('ESP Preview Controls')
-
-RightGroupbox:AddToggle('ESP_Box', {
-    Text = 'ESP: Bounding Box',
-    Default = false,
-    Callback = function(v)
-        Library:SetPreviewESPState({ Box = v })
-    end,
-})
-
-RightGroupbox:AddToggle('ESP_Skeleton', {
-    Text = 'ESP: Skeleton',
-    Default = false,
-    Callback = function(v)
-        Library:SetPreviewESPState({ Skeleton = v })
-    end,
-})
-
-RightGroupbox:AddToggle('ESP_Name', {
-    Text = 'ESP: Name',
-    Default = false,
-    Callback = function(v)
-        Library:SetPreviewESPState({ Name = v })
-    end,
-})
-
-RightGroupbox:AddToggle('ESP_Health', {
-    Text = 'ESP: Health',
-    Default = false,
-    Callback = function(v)
-        Library:SetPreviewESPState({ Health = v })
-    end,
-})
-
-RightGroupbox:AddToggle('ESP_Weapon', {
-    Text = 'ESP: Weapon',
-    Default = false,
-    Callback = function(v)
-        Library:SetPreviewESPState({ Weapon = v })
-    end,
-})
-
-RightGroupbox:AddToggle('ESP_Animate', {
-    Text = 'ESP Preview Animation',
-    Default = true,
-    Callback = function(v)
-        -- (Preview animation is not used in the new real-ESP preview; reserved for future.)
-    end,
-})
 
 -- New: Dependent toggles (simple, inline dependency)
 RightGroupbox:AddToggle('DependentToggle', {
