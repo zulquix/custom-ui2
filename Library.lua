@@ -25,6 +25,34 @@ ProtectGui(ScreenGui);
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
+-- Visual overlay for blur + interaction blocking when UI is open.
+-- Purely visual: does not change gameplay logic, only captures input and adds BlurEffect.
+local Lighting = Services.Lighting
+local BlurEffect = Instance.new('BlurEffect')
+BlurEffect.Size = 0
+BlurEffect.Enabled = false
+BlurEffect.Parent = Lighting
+
+local InteractionBlocker = Instance.new('TextButton')
+InteractionBlocker.Name = 'InteractionBlocker'
+InteractionBlocker.BackgroundColor3 = Color3.new(0, 0, 0)
+InteractionBlocker.BackgroundTransparency = 1
+InteractionBlocker.BorderSizePixel = 0
+InteractionBlocker.AutoButtonColor = false
+InteractionBlocker.Text = ''
+InteractionBlocker.Visible = false
+InteractionBlocker.ZIndex = 0
+InteractionBlocker.Size = UDim2.fromScale(1, 1)
+InteractionBlocker.Parent = ScreenGui
+
+InteractionBlocker.MouseButton1Down:Connect(function() end)
+InteractionBlocker.MouseButton2Down:Connect(function() end)
+
+local function setBlur(amount)
+    BlurEffect.Enabled = amount > 0
+    BlurEffect.Size = amount
+end
+
 local Toggles = {};
 local Options = {};
 
@@ -133,6 +161,23 @@ function Library:SetPerformanceMode(enabled)
     self.Animation.Enabled = not self.PerformanceMode
 end
 
+function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
+    self.InteractionLocked = not not enabled
+
+    InteractionBlocker.Visible = self.InteractionLocked
+    InteractionBlocker.ZIndex = 0
+    InteractionBlocker.BackgroundTransparency = (type(dimTransparency) == 'number') and dimTransparency or 0.55
+
+    local amt = (type(blurAmount) == 'number') and blurAmount or 14
+    if not self.InteractionLocked then
+        InteractionBlocker.BackgroundTransparency = 1
+        setBlur(0)
+        return
+    end
+
+    setBlur(amt)
+end
+
 function Library:Tween(inst, tweenInfo, props)
     if not self.Animation.Enabled then
         for k, v in next, props do
@@ -144,6 +189,19 @@ function Library:Tween(inst, tweenInfo, props)
     local tween = TweenService:Create(inst, ti, props)
     tween:Play()
     return tween
+end
+
+function Library:ApplyHoverTween(hitbox, target, propsIn, propsOut, tweenInfo)
+    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then
+        return
+    end
+    local ti = tweenInfo or self.Animation.TweenInfoFast
+    hitbox.MouseEnter:Connect(function()
+        self:Tween(target, ti, propsIn)
+    end)
+    hitbox.MouseLeave:Connect(function()
+        self:Tween(target, ti, propsOut)
+    end)
 end
 
 function Library:FadeIn(inst, duration)
@@ -1696,6 +1754,12 @@ do
                 { BorderColor3 = 'AccentColor' },
                 { BorderColor3 = 'Black' }
             );
+
+            -- Visual-only hover tween
+            Library:ApplyHoverTween(Outer, Inner,
+                { BackgroundColor3 = Library:GetDarkerColor(Library.AccentColor) },
+                { BackgroundColor3 = Library.MainColor }
+            )
 
             return Outer, Inner, Label
         end
@@ -3390,6 +3454,184 @@ function Library:CreateWindow(...)
         Parent = MainSectionOuter;
     });
 
+    -- Right-side ESP preview panel (visual-only).
+    local EspPreviewOuter = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor,
+        BorderColor3 = Library.OutlineColor,
+        BorderMode = Enum.BorderMode.Inset,
+        Position = UDim2.new(1, -176, 0, 30),
+        Size = UDim2.new(0, 168, 1, -38),
+        ZIndex = 3,
+        Parent = MainSectionInner,
+        Visible = true,
+    })
+
+    Library:AddToRegistry(EspPreviewOuter, {
+        BackgroundColor3 = 'MainColor',
+        BorderColor3 = 'OutlineColor',
+    })
+
+    local EspTitle = Library:CreateLabel({
+        Position = UDim2.new(0, 6, 0, 4),
+        Size = UDim2.new(1, -12, 0, 18),
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Text = 'ESP Preview',
+        ZIndex = 4,
+        Parent = EspPreviewOuter,
+    })
+
+    local EspViewport = Library:Create('Frame', {
+        BackgroundColor3 = Library.BackgroundColor,
+        BorderColor3 = Library.OutlineColor,
+        BorderMode = Enum.BorderMode.Inset,
+        Position = UDim2.new(0, 6, 0, 26),
+        Size = UDim2.new(1, -12, 0, 160),
+        ZIndex = 4,
+        Parent = EspPreviewOuter,
+    })
+
+    Library:AddToRegistry(EspViewport, {
+        BackgroundColor3 = 'BackgroundColor',
+        BorderColor3 = 'OutlineColor',
+    })
+
+    local Viewport = Library:Create('ViewportFrame', {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 5,
+        Parent = EspViewport,
+    })
+
+    local Cam = Instance.new('Camera')
+    Cam.Parent = Viewport
+    Viewport.CurrentCamera = Cam
+
+    local WorldModel = Instance.new('WorldModel')
+    WorldModel.Parent = Viewport
+
+    local function mkPart(size, pos)
+        local p = Instance.new('Part')
+        p.Anchored = true
+        p.CanCollide = false
+        p.Material = Enum.Material.SmoothPlastic
+        p.Size = size
+        p.CFrame = CFrame.new(pos)
+        p.Color = Color3.fromRGB(200, 200, 200)
+        p.Parent = WorldModel
+        return p
+    end
+
+    -- Simple blocky humanoid
+    local Torso = mkPart(Vector3.new(2, 2.5, 1), Vector3.new(0, 1.5, 0))
+    local Head = mkPart(Vector3.new(1.6, 1.6, 1.6), Vector3.new(0, 3.3, 0))
+    local LArm = mkPart(Vector3.new(0.7, 2.2, 0.7), Vector3.new(-1.6, 1.6, 0))
+    local RArm = mkPart(Vector3.new(0.7, 2.2, 0.7), Vector3.new(1.6, 1.6, 0))
+    local LLeg = mkPart(Vector3.new(0.8, 2.4, 0.8), Vector3.new(-0.6, -0.2, 0))
+    local RLeg = mkPart(Vector3.new(0.8, 2.4, 0.8), Vector3.new(0.6, -0.2, 0))
+
+    Cam.CFrame = CFrame.new(Vector3.new(0, 2.0, 7), Vector3.new(0, 1.8, 0))
+
+    local StatusArea = Library:Create('Frame', {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 6, 0, 192),
+        Size = UDim2.new(1, -12, 1, -198),
+        ZIndex = 4,
+        Parent = EspPreviewOuter,
+    })
+
+    local Layout = Instance.new('UIListLayout')
+    Layout.FillDirection = Enum.FillDirection.Vertical
+    Layout.SortOrder = Enum.SortOrder.LayoutOrder
+    Layout.Padding = UDim.new(0, 4)
+    Layout.Parent = StatusArea
+
+    local function mkStatusRow(name)
+        local row = Library:Create('Frame', {
+            BackgroundColor3 = Library.BackgroundColor,
+            BorderColor3 = Library.OutlineColor,
+            BorderMode = Enum.BorderMode.Inset,
+            Size = UDim2.new(1, 0, 0, 18),
+            ZIndex = 4,
+            Parent = StatusArea,
+        })
+        Library:AddToRegistry(row, { BackgroundColor3 = 'BackgroundColor', BorderColor3 = 'OutlineColor' })
+
+        local dot = Library:Create('Frame', {
+            BackgroundColor3 = Color3.fromRGB(255, 80, 80),
+            BorderSizePixel = 0,
+            Position = UDim2.new(0, 5, 0.5, 0),
+            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.fromOffset(8, 8),
+            ZIndex = 5,
+            Parent = row,
+        })
+        local corner = Instance.new('UICorner')
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = dot
+
+        local label = Library:CreateLabel({
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 18, 0, 0),
+            Size = UDim2.new(1, -18, 1, 0),
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Text = name,
+            ZIndex = 5,
+            Parent = row,
+        })
+        return { Row = row, Dot = dot, Label = label }
+    end
+
+    local StatusRows = {
+        Box = mkStatusRow('Bounding Box'),
+        Name = mkStatusRow('Name'),
+        Health = mkStatusRow('Health'),
+        Weapon = mkStatusRow('Weapon'),
+    }
+
+    local function applyStatus(row, on)
+        row.Dot.BackgroundColor3 = on and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(255, 80, 80)
+        row.Label.TextColor3 = on and Color3.fromRGB(210, 255, 225) or Library.FontColor
+    end
+
+    local EspPreviewState = {
+        Box = false,
+        Name = false,
+        Health = false,
+        Weapon = false,
+        Animate = true,
+    }
+
+    local function updatePreview()
+        applyStatus(StatusRows.Box, EspPreviewState.Box)
+        applyStatus(StatusRows.Name, EspPreviewState.Name)
+        applyStatus(StatusRows.Health, EspPreviewState.Health)
+        applyStatus(StatusRows.Weapon, EspPreviewState.Weapon)
+
+        -- Highlight body parts based on enabled elements
+        Torso.Color = EspPreviewState.Box and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
+        Head.Color = EspPreviewState.Name and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
+        LLeg.Color = EspPreviewState.Health and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
+        RLeg.Color = EspPreviewState.Health and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
+        RArm.Color = EspPreviewState.Weapon and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
+        LArm.Color = EspPreviewState.Weapon and Color3.fromRGB(80, 220, 120) or Color3.fromRGB(200, 200, 200)
+    end
+
+    updatePreview()
+
+    -- Subtle limb animation (visual only)
+    local animT = 0
+    Library:GiveSignal(RenderStepped:Connect(function(dt)
+        if not Outer.Visible then return end
+        if not EspPreviewOuter.Visible then return end
+        if not EspPreviewState.Animate then return end
+        animT = animT + dt
+        local swing = math.sin(animT * 2) * 0.25
+        LArm.CFrame = CFrame.new(-1.6, 1.6, 0) * CFrame.Angles(swing, 0, 0)
+        RArm.CFrame = CFrame.new(1.6, 1.6, 0) * CFrame.Angles(-swing, 0, 0)
+    end))
+
     Library:AddToRegistry(MainSectionInner, {
         BackgroundColor3 = 'BackgroundColor';
     });
@@ -3409,11 +3651,13 @@ function Library:CreateWindow(...)
         Parent = TabArea;
     });
 
+    local EspPreviewPadding = 176
+
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
         Position = UDim2.new(0, 8, 0, 30);
-        Size = UDim2.new(1, -16, 1, -38);
+        Size = UDim2.new(1, -16 - EspPreviewPadding, 1, -38);
         ZIndex = 2;
         Parent = MainSectionInner;
     });
@@ -3423,6 +3667,42 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
+
+    function Window:SetESPPreviewVisible(visible)
+        EspPreviewOuter.Visible = not not visible
+        TabContainer.Size = UDim2.new(1, -16 - (EspPreviewOuter.Visible and EspPreviewPadding or 0), 1, -38)
+    end
+
+    function Window:UpdateESPPreview(state)
+        if type(state) ~= 'table' then
+            return
+        end
+        for k, v in next, state do
+            if EspPreviewState[k] ~= nil then
+                EspPreviewState[k] = not not v
+            end
+        end
+        updatePreview()
+    end
+
+    Window.EspPreview = {
+        Container = EspPreviewOuter,
+        Viewport = Viewport,
+        State = EspPreviewState,
+    }
+
+    -- Animated accent glow border (visual-only)
+    local Glow = Library:Create('UIStroke', {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = Library.AccentColor,
+        Thickness = 2,
+        Transparency = 0.25,
+        Parent = Inner,
+    })
+
+    Library:AddToRegistry(Glow, {
+        Color = 'AccentColor',
+    })
 
     function Window:SetWindowTitle(Title)
         WindowLabel.Text = Title;
@@ -3887,9 +4167,16 @@ function Library:CreateWindow(...)
         Toggled = (not Toggled);
         ModalElement.Modal = Toggled;
 
+        -- Visual-only background lock (blur + input capture)
+        Library:SetInteractionLock(Toggled, 14, 0.55)
+
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
+
+            local startPos = Outer.Position
+            Outer.Position = startPos + UDim2.fromOffset(0, 18)
+            Library:Tween(Outer, TweenInfo.new(FadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = startPos })
 
             task.spawn(function()
                 -- TODO: add cursor fade?
@@ -3968,6 +4255,11 @@ function Library:CreateWindow(...)
         task.wait(FadeTime);
 
         Outer.Visible = Toggled;
+
+        if not Toggled then
+            -- Reset position in case of interruptions
+            Outer.Position = Config.Position
+        end
 
         Fading = false;
     end
