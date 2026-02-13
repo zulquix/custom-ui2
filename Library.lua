@@ -2242,28 +2242,8 @@ do
             Parent = ToggleOuter;
         });
 
-        ToggleRegion.MouseEnter:Connect(function()
-            if Library:MouseIsOverOpenedFrame() then
-                return
-            end
-
-            if not Toggle.Value then
-                local reg = Library.RegistryMap[ToggleOuter]
-                ToggleOuter.BorderColor3 = Library.OutlineColor
-                if reg and reg.Properties.BorderColor3 then
-                    reg.Properties.BorderColor3 = 'OutlineColor'
-                end
-            end
-        end)
-
-        ToggleRegion.MouseLeave:Connect(function()
-            local reg = Library.RegistryMap[ToggleOuter]
-            local borderKey = Toggle.Value and 'AccentColorDark' or 'OutlineColor'
-            ToggleOuter.BorderColor3 = Library[borderKey]
-            if reg and reg.Properties.BorderColor3 then
-                reg.Properties.BorderColor3 = borderKey
-            end
-        end)
+        ToggleRegion.MouseEnter:Connect(function() end)
+        ToggleRegion.MouseLeave:Connect(function() end)
 
         function Toggle:UpdateColors()
             Toggle:Display();
@@ -2278,6 +2258,8 @@ do
             local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
             local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
 
+            ToggleOuter.BackgroundColor3 = bg
+            ToggleOuter.BorderColor3 = bc
             Library:Tween(ToggleOuter, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
 
             local outerReg = Library.RegistryMap[ToggleOuter]
