@@ -2242,10 +2242,28 @@ do
             Parent = ToggleOuter;
         });
 
-        Library:OnHighlight(ToggleRegion, ToggleOuter,
-            { BorderColor3 = 'AccentColor' },
-            { BorderColor3 = 'Black' }
-        );
+        ToggleRegion.MouseEnter:Connect(function()
+            if Library:MouseIsOverOpenedFrame() then
+                return
+            end
+
+            if not Toggle.Value then
+                local reg = Library.RegistryMap[ToggleOuter]
+                ToggleOuter.BorderColor3 = Library.AccentColor
+                if reg and reg.Properties.BorderColor3 then
+                    reg.Properties.BorderColor3 = 'AccentColor'
+                end
+            end
+        end)
+
+        ToggleRegion.MouseLeave:Connect(function()
+            local reg = Library.RegistryMap[ToggleOuter]
+            local borderKey = Toggle.Value and 'AccentColorDark' or 'OutlineColor'
+            ToggleOuter.BorderColor3 = Library[borderKey]
+            if reg and reg.Properties.BorderColor3 then
+                reg.Properties.BorderColor3 = borderKey
+            end
+        end)
 
         function Toggle:UpdateColors()
             Toggle:Display();
