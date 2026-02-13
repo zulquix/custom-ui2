@@ -2199,33 +2199,6 @@ do
             BorderColor3 = 'OutlineColor';
         });
 
-        local ToggleKnob = Library:Create('Frame', {
-            BackgroundColor3 = Library.AccentColor;
-            BorderColor3 = Library.AccentColorDark;
-            Size = UDim2.new(0, 5, 0, 5);
-            Position = UDim2.fromOffset(4, 4);
-            ZIndex = 7;
-            Parent = ToggleInner;
-        });
-
-        Library:AddToRegistry(ToggleKnob, {
-            BackgroundColor3 = 'AccentColor';
-            BorderColor3 = 'AccentColorDark';
-        });
-
-        local ToggleGlow = Library:Create('UIStroke', {
-            Color = Library.AccentColor;
-            Thickness = 1;
-            Transparency = 1;
-            LineJoinMode = Enum.LineJoinMode.Round;
-            ApplyStrokeMode = Enum.ApplyStrokeMode.Border;
-            Parent = ToggleInner;
-        });
-
-        Library:AddToRegistry(ToggleGlow, {
-            Color = 'AccentColor';
-        });
-
         local ToggleLabel = Library:CreateLabel({
             Size = UDim2.new(0, 216, 1, 0);
             Position = UDim2.new(1, 6, 0, 0);
@@ -2272,16 +2245,6 @@ do
             Library:Tween(ToggleInner, ti, {
                 BackgroundColor3 = bg,
                 BorderColor3 = bc,
-            })
-
-            local knobPos = Toggle.Value and UDim2.fromOffset(6, 3) or UDim2.fromOffset(4, 4)
-            local knobSize = Toggle.Value and UDim2.new(0, 6, 0, 6) or UDim2.new(0, 5, 0, 5)
-            Library:Tween(ToggleKnob, ti, {
-                Position = knobPos,
-                Size = knobSize,
-            })
-            Library:Tween(ToggleGlow, Library.Animation.TweenInfoFast, {
-                Transparency = Toggle.Value and 0.15 or 1,
             })
 
             Library.RegistryMap[ToggleInner].Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
