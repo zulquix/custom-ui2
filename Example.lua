@@ -69,13 +69,13 @@ LeftGroupBox:AddDropdown('ThemeSelect', {
     end
 })
 
--- Demo: show/hide menu to demonstrate blur + interaction lock + open animation
+-- Demo: show/hide menu to demonstrate interaction lock + open animation
 LeftGroupBox:AddButton({
-    Text = 'Toggle Menu (Blur Demo)',
+    Text = 'Toggle Menu',
     Func = function()
         Library:Toggle()
     end,
-    Tooltip = 'Shows blur + input blocking overlay when open'
+    Tooltip = 'Shows input blocking overlay when open'
 })
 
 -- We can also get our Main tab via the following code:
@@ -559,7 +559,7 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-print("sigma 21")
+print("sigma 2.2")
 -- You can use the SaveManager:LoadAutoloadConfig()
 -- which has been marked to be one that auto loads!
 SaveManager:LoadAutoloadConfig()
