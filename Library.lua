@@ -216,6 +216,29 @@ function Library:ApplyHoverTween(hitbox, target, propsIn, propsOut, tweenInfo)
     end)
 end
 
+function Library:ApplyClickTween(hitbox, target, propsDown, propsUp, tweenInfoDown, tweenInfoUp)
+    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then
+        return
+    end
+
+    local tiDown = tweenInfoDown or self.Animation.TweenInfoFast
+    local tiUp = tweenInfoUp or self.Animation.TweenInfoSpringFast
+
+    local function IsLeftClick(input)
+        return input and input.UserInputType == Enum.UserInputType.MouseButton1
+    end
+
+    hitbox.InputBegan:Connect(function(input)
+        if not IsLeftClick(input) then return end
+        self:Tween(target, tiDown, propsDown)
+    end)
+
+    hitbox.InputEnded:Connect(function(input)
+        if not IsLeftClick(input) then return end
+        self:Tween(target, tiUp, propsUp)
+    end)
+end
+
 function Library:FadeIn(inst, duration)
     if inst:IsA('GuiObject') then
         inst.Visible = true
@@ -1808,6 +1831,12 @@ do
             Library:ApplyHoverTween(Outer, Inner,
                 { BackgroundColor3 = Library:GetDarkerColor(Library.AccentColor) },
                 { BackgroundColor3 = Library.MainColor }
+            )
+
+            -- Click/press tween
+            Library:ApplyClickTween(Outer, Inner,
+                { Size = UDim2.new(1, -2, 1, -2), Position = UDim2.fromOffset(1, 1) },
+                { Size = UDim2.new(1, 0, 1, 0), Position = UDim2.fromOffset(0, 0) }
             )
 
             return Outer, Inner, Label
