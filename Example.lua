@@ -20,8 +20,11 @@ local Window = Library:CreateWindow({
     MenuFadeTime = 0.2
 })
 
+-- Floating ESP preview (standalone)
+Library:CreateFloatingESPPreview()
+
 -- Ensure ESP preview panel is visible (visual-only)
-Window:SetESPPreviewVisible(true)
+-- Window:SetESPPreviewVisible(true)
 
 -- Modern theme additions (built-in + custom)
 Library:RegisterCustomTheme('PurpleNight', {
@@ -458,7 +461,15 @@ RightGroupbox:AddToggle('ESP_Box', {
     Text = 'ESP: Bounding Box',
     Default = false,
     Callback = function(v)
-        Window:UpdateESPPreview({ Box = v })
+        Library:SetPreviewESPState({ Box = v })
+    end,
+})
+
+RightGroupbox:AddToggle('ESP_Skeleton', {
+    Text = 'ESP: Skeleton',
+    Default = false,
+    Callback = function(v)
+        Library:SetPreviewESPState({ Skeleton = v })
     end,
 })
 
@@ -466,7 +477,7 @@ RightGroupbox:AddToggle('ESP_Name', {
     Text = 'ESP: Name',
     Default = false,
     Callback = function(v)
-        Window:UpdateESPPreview({ Name = v })
+        Library:SetPreviewESPState({ Name = v })
     end,
 })
 
@@ -474,7 +485,7 @@ RightGroupbox:AddToggle('ESP_Health', {
     Text = 'ESP: Health',
     Default = false,
     Callback = function(v)
-        Window:UpdateESPPreview({ Health = v })
+        Library:SetPreviewESPState({ Health = v })
     end,
 })
 
@@ -482,7 +493,7 @@ RightGroupbox:AddToggle('ESP_Weapon', {
     Text = 'ESP: Weapon',
     Default = false,
     Callback = function(v)
-        Window:UpdateESPPreview({ Weapon = v })
+        Library:SetPreviewESPState({ Weapon = v })
     end,
 })
 
@@ -490,7 +501,7 @@ RightGroupbox:AddToggle('ESP_Animate', {
     Text = 'ESP Preview Animation',
     Default = true,
     Callback = function(v)
-        Window:UpdateESPPreview({ Animate = v })
+        -- (Preview animation is not used in the new real-ESP preview; reserved for future.)
     end,
 })
 
@@ -606,7 +617,7 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
-print("sigma 1.1")
+print("sigma 1.3")
 -- You can use the SaveManager:LoadAutoloadConfig()
 -- which has been marked to be one that auto loads!
 SaveManager:LoadAutoloadConfig()
