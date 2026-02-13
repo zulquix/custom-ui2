@@ -2213,19 +2213,6 @@ do
         });
 
         Library:AddToRegistry(ToggleOuter, {
-            BorderColor3 = 'Black';
-        });
-
-        local ToggleInner = Library:Create('Frame', {
-            BackgroundColor3 = Library.MainColor;
-            BorderColor3 = Library.OutlineColor;
-            BorderMode = Enum.BorderMode.Inset;
-            Size = UDim2.new(1, 0, 1, 0);
-            ZIndex = 6;
-            Parent = ToggleOuter;
-        });
-
-        Library:AddToRegistry(ToggleInner, {
             BackgroundColor3 = 'MainColor';
             BorderColor3 = 'OutlineColor';
         });
@@ -2237,7 +2224,7 @@ do
             Text = Info.Text;
             TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 6;
-            Parent = ToggleInner;
+            Parent = ToggleOuter;
         });
 
         Library:Create('UIListLayout', {
@@ -2273,12 +2260,12 @@ do
             local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
             local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
 
-            Library:Tween(ToggleInner, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
+            Library:Tween(ToggleOuter, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
 
-            local innerReg = Library.RegistryMap[ToggleInner]
-            if innerReg then
-                innerReg.Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
-                innerReg.Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
+            local outerReg = Library.RegistryMap[ToggleOuter]
+            if outerReg then
+                outerReg.Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
+                outerReg.Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
             end
         end;
 
