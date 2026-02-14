@@ -7,6 +7,7 @@ local Services = setmetatable({}, {
 })
 
 local InputService = Services.UserInputService;
+local ContextActionService = Services.ContextActionService;
 local TextService = Services.TextService;
 local CoreGui = Services.CoreGui;
 local Teams = Services.Teams;
@@ -175,21 +176,19 @@ function Library:SetPerformanceMode(enabled)
     self.Animation.Enabled = not self.PerformanceMode
 end
 
+local UIBlockActionName = 'LinoriaUI_BlockInput'
+
 function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
     self.InteractionLocked = not not enabled
 
-    InteractionBlocker.Visible = true
-    InteractionBlocker.ZIndex = 0
-    InteractionBlocker.Active = true
-    InteractionBlocker.Modal = self.InteractionLocked
-    InteractionBlocker.BackgroundTransparency = 1
-
-    if not self.InteractionLocked then
-        task.delay(0.25, function()
-            InteractionBlocker.Visible = false
-            InteractionBlocker.Modal = false
-        end)
-        return
+    if self.InteractionLocked then
+        ContextActionService:BindAction(UIBlockActionName, function()
+            return Enum.ContextActionResult.Sink
+        end, false, Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.Space,
+            Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl,
+            Enum.UserInputType.MouseMovement)
+    else
+        ContextActionService:UnbindAction(UIBlockActionName)
     end
 end
 
@@ -3474,9 +3473,15 @@ function Library:CreateWindow(...)
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
 
-    if Config.Center then
-        Config.AnchorPoint = Vector2.new(0.5, 0.5)
-        Config.Position = UDim2.fromScale(0.5, 0.5)
+    -- UI is always centered and non-draggable
+    Config.AnchorPoint = Vector2.new(0.5, 0.5)
+    Config.Position = UDim2.fromScale(0.5, 0.5)
+
+    if not Library.BlurEffect then
+        Library.BlurEffect = Instance.new('BlurEffect')
+        Library.BlurEffect.Name = 'LinoriaUI_Blur'
+        Library.BlurEffect.Size = 0
+        Library.BlurEffect.Parent = game:GetService('Lighting')
     end
 
     local Window = {
@@ -3493,8 +3498,6 @@ function Library:CreateWindow(...)
         ZIndex = 1;
         Parent = ScreenGui;
     });
-
-    Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
@@ -4058,9 +4061,15 @@ function Library:CreateWindow(...)
         end)
 
         ModalElement.Modal = Toggled;
+        Outer.Modal = Toggled;
 
-        -- Visual-only background lock (input capture)
+        -- Block game input (movement, camera) without transparent frame
         Library:SetInteractionLock(Toggled, nil, 0.55)
+
+        -- Blur background when UI is open, clear when closed
+        if Library.BlurEffect then
+            Library.BlurEffect.Size = Toggled and 24 or 0
+        end
 
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
