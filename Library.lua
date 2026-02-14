@@ -1436,6 +1436,8 @@ do
                     Library:AttemptSave();
                 end;
             end);
+        end;
+
         Library:GiveSignal(InputService.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
                 local AbsPos, AbsSize = PickerFrameOuter.AbsolutePosition, PickerFrameOuter.AbsoluteSize;
@@ -1445,7 +1447,13 @@ do
 
                     ColorPicker:Hide();
                 end;
+
+                if not Library:IsMouseOverFrame(ContextMenu.Container) then
+                    ContextMenu:Hide()
+                end
             end;
+
+            if Input.UserInputType == Enum.UserInputType.MouseButton2 and ContextMenu.Container.Visible then
                 if not Library:IsMouseOverFrame(ContextMenu.Container) and not Library:IsMouseOverFrame(DisplayFrame) then
                     ContextMenu:Hide()
                 end
@@ -3687,172 +3695,6 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    local StatusOuter = Library:Create('Frame', {
-        AnchorPoint = Vector2.new(0.5, 1),
-        BackgroundColor3 = Color3.new(0, 0, 0);
-        BorderSizePixel = 0;
-        Position = UDim2.new(0.5, 0, 0, -4),
-        Size = UDim2.new(1, 0, 0, 52);
-        Visible = false;
-        ZIndex = 20;
-        Parent = Outer;
-    })
-
-    local StatusInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.AccentColor;
-        BorderMode = Enum.BorderMode.Inset;
-        Position = UDim2.new(0, 1, 0, 1);
-        Size = UDim2.new(1, -2, 1, -2);
-        ZIndex = 2;
-        Parent = StatusOuter;
-    })
-
-    Library:AddToRegistry(StatusInner, {
-        BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'AccentColor';
-    })
-
-    local StatusGlow = Library:Create('UIStroke', {
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        Color = Library.AccentColor,
-        Thickness = 2,
-        Transparency = 0.25,
-        Parent = StatusInner,
-    })
-
-    Library:AddToRegistry(StatusGlow, {
-        Color = 'AccentColor',
-    })
-
-    local StatusBackground = Library:Create('Frame', {
-        BackgroundColor3 = Color3.new(1, 1, 1),
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 1, 0, 1),
-        Size = UDim2.new(1, -2, 1, -2),
-        ZIndex = 2,
-        Active = false,
-        Parent = StatusInner,
-    })
-
-    local StatusGradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
-        }),
-        Rotation = -90,
-        Parent = StatusBackground,
-    })
-
-    Library:AddToRegistry(StatusGradient, {
-        Color = function()
-            return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
-            })
-        end,
-    })
-
-    local StatusContent = Library:Create('Frame', {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(1, 0, 1, 0),
-        ZIndex = 5,
-        Parent = StatusInner,
-    })
-
-    local StatusPadding = Library:Create('UIPadding', {
-        PaddingLeft = UDim.new(0, 8),
-        PaddingRight = UDim.new(0, 8),
-        PaddingTop = UDim.new(0, 4),
-        PaddingBottom = UDim.new(0, 6),
-        Parent = StatusContent,
-    })
-
-    local StatusLayout = Library:Create('UIListLayout', {
-        FillDirection = Enum.FillDirection.Vertical,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 1),
-        Parent = StatusContent,
-    })
-
-    local StatusTitle = Library:CreateLabel({
-        Size = UDim2.new(1, 0, 0, 13),
-        TextSize = 13,
-        Text = 'Server info:',
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 6,
-        Parent = StatusContent,
-    })
-
-    local PlayerCountLabel = Library:CreateLabel({
-        Size = UDim2.new(1, 0, 0, 13),
-        TextSize = 13,
-        Text = 'Player Count: --/--',
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 6,
-        Parent = StatusContent,
-    })
-
-    local AntiCheatLine = Library:Create('Frame', {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 13),
-        ZIndex = 6,
-        Parent = StatusContent,
-    })
-
-    local AntiCheatPrefix = Library:CreateLabel({
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 0, 1, 0),
-        TextSize = 13,
-        Text = 'AntiCheat Status: ',
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 7,
-        Parent = AntiCheatLine,
-    })
-
-    local AntiCheatValue = Library:CreateLabel({
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 0, 1, 0),
-        TextSize = 13,
-        Text = 'Bypassed',
-        TextColor3 = Color3.fromRGB(0, 255, 0),
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 7,
-        Parent = AntiCheatLine,
-    })
-
-    local function UpdateAntiCheatLayout()
-        local px = Library:GetTextBounds(AntiCheatPrefix.Text, Library.Font, 14)
-        AntiCheatPrefix.Size = UDim2.new(0, px + 2, 1, 0)
-        AntiCheatValue.Position = UDim2.new(0, px + 2, 0, 0)
-        AntiCheatValue.Size = UDim2.new(1, -(px + 2), 1, 0)
-    end
-    UpdateAntiCheatLayout()
-    table.insert(Library.Signals, AntiCheatPrefix:GetPropertyChangedSignal('Text'):Connect(UpdateAntiCheatLayout))
-
-    local function UpdateStatusBarPosition()
-        StatusOuter.Position = UDim2.fromOffset(0, -(StatusOuter.Size.Y.Offset + 4))
-    end
-
-    StatusOuter:GetPropertyChangedSignal('Size'):Connect(UpdateStatusBarPosition)
-
-    local function FormatPlayerCount()
-        local cur = #Players:GetPlayers()
-        local max = Players.MaxPlayers
-        return string.format('Player Count: %d/%d', cur, max)
-    end
-
-    local function UpdatePlayerCount()
-        PlayerCountLabel.Text = FormatPlayerCount()
-    end
-
-    UpdateStatusBarPosition()
-    UpdatePlayerCount()
-
-    table.insert(Library.Signals, Players.PlayerAdded:Connect(UpdatePlayerCount))
-    table.insert(Library.Signals, Players.PlayerRemoving:Connect(UpdatePlayerCount))
-
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.AccentColor;
@@ -4428,7 +4270,6 @@ function Library:CreateWindow(...)
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
-            StatusOuter.Visible = true;
 
             local startPos = Outer.Position
             Outer.Position = startPos + UDim2.fromOffset(0, 22)
@@ -4511,7 +4352,6 @@ function Library:CreateWindow(...)
         task.wait(FadeTime);
 
         Outer.Visible = Toggled;
-        StatusOuter.Visible = Toggled;
 
         if not Toggled then
             -- Reset position in case of interruptions
