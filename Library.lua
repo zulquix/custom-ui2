@@ -3353,24 +3353,6 @@ do
         BorderColor3 = 'OutlineColor',
     }, true)
 
-    local TopTitleGradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
-            ColorSequenceKeypoint.new(1, Library.BackgroundColor),
-        }),
-        Rotation = -90,
-        Parent = TopTitleInner,
-    })
-
-    Library:AddToRegistry(TopTitleGradient, {
-        Color = function()
-            return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
-                ColorSequenceKeypoint.new(1, Library.BackgroundColor),
-            })
-        end,
-    })
-
     local TopTitlePadding = Library:Create('UIPadding', {
         PaddingTop = UDim.new(0, 6),
         PaddingBottom = UDim.new(0, 6),
