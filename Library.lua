@@ -3321,7 +3321,7 @@ do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, 0, 0, 40);
+        Position = UDim2.new(1, -4, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
@@ -3486,7 +3486,7 @@ function Library:_reflowNotifications()
     for i = 1, #self.NotificationQueue do
         local n = self.NotificationQueue[i]
         if n and n.Outer then
-            n.Outer.Position = UDim2.new(1, 0, 0, y)
+            n.Outer.Position = UDim2.new(1, -4, 0, y)
             y = y + (n.Outer.AbsoluteSize.Y + (self.NotificationPadding or 6))
         end
     end
@@ -3521,7 +3521,7 @@ function Library:Notify(Text, Time, Type, Icon)
     local notifyOuter = self:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, 0, 0, 10);
+        Position = UDim2.new(1, -4, 0, 10);
         Size = UDim2.new(0, 0, 0, ySize);
         ClipsDescendants = true;
         ZIndex = 100;
