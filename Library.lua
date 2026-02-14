@@ -45,9 +45,26 @@ end)
 
 local ToggleSound = Instance.new('Sound')
 ToggleSound.Name = 'ToggleSound'
-ToggleSound.SoundId = 'rbxassetid://85146328206277'
+ToggleSound.SoundId = 'rbxassetid://9120097951'
 ToggleSound.Volume = 0.6
 ToggleSound.Parent = ScreenGui
+
+local UISounds = {}
+
+local function CreateUISound(name, assetId, volume)
+    local s = Instance.new('Sound')
+    s.Name = name
+    s.SoundId = 'rbxassetid://' .. tostring(assetId)
+    s.Volume = volume or 0.6
+    s.Parent = ScreenGui
+    UISounds[name] = s
+    return s
+end
+
+CreateUISound('TabSwitchSound', 139719503904449, 0.65)
+CreateUISound('DropdownSound', 137210144318481, 0.65)
+CreateUISound('ToggleSoundNew', 9120097951, 0.65)
+CreateUISound('ButtonSound', 9120099090, 0.65)
 
 -- Visual overlay for interaction blocking when UI is open.
 -- Purely visual: does not change gameplay logic, only captures input.
@@ -108,71 +125,6 @@ Library.Blur = {
     TweenOut = TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
     Instance = nil,
 };
-
-Library.Sounds = {
-    Tab = nil,
-    Dropdown = nil,
-    Toggle = nil,
-    Button = nil,
-};
-
-Library.UISoundsEnabled = true;
-Library.UISoundVolume = 0.55;
-
-function Library:SetUISoundsEnabled(enabled)
-    self.UISoundsEnabled = not not enabled
-end
-
-function Library:SetUISoundVolume(vol)
-    if type(vol) ~= 'number' then
-        return
-    end
-    vol = math.clamp(vol, 0, 1)
-    self.UISoundVolume = vol
-
-    for _, s in next, self.Sounds do
-        if typeof(s) == 'Instance' and s:IsA('Sound') then
-            s.Volume = vol
-        end
-    end
-end
-
-function Library:_initSounds()
-    if self.Sounds.Tab then
-        return
-    end
-
-    if not self.ScreenGui then
-        return
-    end
-
-    local function make(id)
-        local s = Instance.new('Sound')
-        s.SoundId = 'rbxassetid://' .. tostring(id)
-        s.Volume = self.UISoundVolume or 0.55
-        s.Name = 'SodiumLibUISound'
-        s.Parent = self.ScreenGui
-        return s
-    end
-
-    self.Sounds.Tab = make(139719503904449)
-    self.Sounds.Dropdown = make(137210144318481)
-    self.Sounds.Toggle = make(9120097951)
-    self.Sounds.Button = make(9120099090)
-end
-
-function Library:PlayUISound(kind)
-    pcall(function()
-        if self.UISoundsEnabled == false then
-            return
-        end
-        self:_initSounds()
-        local s = self.Sounds[kind]
-        if s then
-            s:Play()
-        end
-    end)
-end
 
 Library.InputBlock = {
     ActionName = 'Linoria_InputBlock',
@@ -617,6 +569,15 @@ function Library:SetSodiumWatermarkEnabled(enabled)
         local shouldShow = self.SodiumWatermarkEnabled and (self.Toggled == true)
         self.TopTitle.Visible = shouldShow
     end
+end
+
+function Library:PlayUISound(name)
+    local s = UISounds and UISounds[name]
+    if not s then return end
+    pcall(function()
+        s.TimePosition = 0
+        s:Play()
+    end)
 end
 
 function Library:MakeDraggable(Instance, Cutoff)
@@ -2132,8 +2093,6 @@ do
                 if not ValidateClick(Input) then return end
                 if Button.Locked then return end
 
-                Library:PlayUISound('Button')
-
                 if Button.DoubleClick then
                     Library:RemoveFromRegistry(Button.Label)
                     Button.Label.TextColor3 = Library.AccentColor
@@ -2153,12 +2112,14 @@ do
                     task.defer(rawset, Button, 'Locked', false)
 
                     if clicked then
+                        Library:PlayUISound('ButtonSound')
                         Library:SafeCallback(Button.Func)
                     end
 
                     return
                 end
 
+                Library:PlayUISound('ButtonSound')
                 Library:SafeCallback(Button.Func);
             end)
         end
@@ -2564,6 +2525,7 @@ do
             Toggle._busy = true
 
             Toggle.Value = Bool;
+            Library:PlayUISound('ToggleSoundNew')
             Toggle:Display();
 
             for _, Addon in next, Toggle.Addons do
@@ -2588,7 +2550,6 @@ do
 
         ToggleRegion.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
-                Library:PlayUISound('Toggle')
                 Toggle:SetValue(not Toggle.Value);
                 Library:AttemptSave();
             end;
@@ -3139,7 +3100,6 @@ do
 
                 ButtonLabel.InputBegan:Connect(function(Input)
                     if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        Library:PlayUISound('Dropdown')
                         local Try = not Selected;
 
                         if Dropdown:GetActiveValues() == 1 and (not Try) and (not Info.AllowNull) then
@@ -3204,12 +3164,14 @@ do
         end;
 
         function Dropdown:OpenDropdown()
+            Library:PlayUISound('DropdownSound')
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
         end;
 
         function Dropdown:CloseDropdown()
+            Library:PlayUISound('DropdownSound')
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
@@ -3247,7 +3209,6 @@ do
 
         DropdownOuter.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
-                Library:PlayUISound('Dropdown')
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
                 else
@@ -3826,8 +3787,6 @@ function Library:CreateWindow(...)
     local Arguments = { ... }
     local Config = { AnchorPoint = Vector2.zero }
 
-    Library:_initSounds()
-
     if type(...) == 'table' then
         Config = ...;
     else
@@ -4347,7 +4306,6 @@ function Library:CreateWindow(...)
 
                 Button.InputBegan:Connect(function(Input)
                     if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
-                        Library:PlayUISound('Tab')
                         Tab:Show();
                         Tab:Resize();
                     end;
@@ -4384,7 +4342,7 @@ function Library:CreateWindow(...)
 
         TabButton.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                Library:PlayUISound('Tab')
+                Library:PlayUISound('TabSwitchSound')
                 Tab:ShowTab();
             end;
         end);
