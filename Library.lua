@@ -1436,8 +1436,6 @@ do
                     Library:AttemptSave();
                 end;
             end);
-        end;
-
         Library:GiveSignal(InputService.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
                 local AbsPos, AbsSize = PickerFrameOuter.AbsolutePosition, PickerFrameOuter.AbsoluteSize;
@@ -1447,13 +1445,7 @@ do
 
                     ColorPicker:Hide();
                 end;
-
-                if not Library:IsMouseOverFrame(ContextMenu.Container) then
-                    ContextMenu:Hide()
-                end
             end;
-
-            if Input.UserInputType == Enum.UserInputType.MouseButton2 and ContextMenu.Container.Visible then
                 if not Library:IsMouseOverFrame(ContextMenu.Container) and not Library:IsMouseOverFrame(DisplayFrame) then
                     ContextMenu:Hide()
                 end
@@ -3733,52 +3725,12 @@ function Library:CreateWindow(...)
         Color = 'AccentColor',
     })
 
-    local StatusPadding = Library:Create('UIPadding', {
-        PaddingLeft = UDim.new(0, 8),
-        PaddingRight = UDim.new(0, 8),
-        PaddingTop = UDim.new(0, 6),
-        PaddingBottom = UDim.new(0, 6),
-        Parent = StatusInner,
-    })
-
-    local StatusLayout = Library:Create('UIListLayout', {
-        FillDirection = Enum.FillDirection.Vertical,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 2),
-        Parent = StatusInner,
-    })
-
-    local StatusTitle = Library:CreateLabel({
-        Size = UDim2.new(1, 0, 0, 14),
-        TextSize = 14,
-        Text = 'Server info:',
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 6,
-        Parent = StatusInner,
-    })
-
-    local PlayerCountLabel = Library:CreateLabel({
-        Size = UDim2.new(1, 0, 0, 14),
-        TextSize = 14,
-        Text = 'Player Count: --/--',
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 6,
-        Parent = StatusInner,
-    })
-
-    local AntiCheatLine = Library:Create('Frame', {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 14),
-        ZIndex = 6,
-        Parent = StatusInner,
-    })
-
-    local StatusGradientHost = Library:Create('Frame', {
+    local StatusBackground = Library:Create('Frame', {
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Position = UDim2.new(0, 1, 0, 1),
         Size = UDim2.new(1, -2, 1, -2),
-        ZIndex = 1,
+        ZIndex = 2,
         Active = false,
         Parent = StatusInner,
     })
@@ -3789,7 +3741,7 @@ function Library:CreateWindow(...)
             ColorSequenceKeypoint.new(1, Library.MainColor),
         }),
         Rotation = -90,
-        Parent = StatusGradientHost,
+        Parent = StatusBackground,
     })
 
     Library:AddToRegistry(StatusGradient, {
@@ -3801,16 +3753,58 @@ function Library:CreateWindow(...)
         end,
     })
 
-    StatusPadding.Parent = StatusGradientHost
-    StatusLayout.Parent = StatusGradientHost
-    StatusTitle.Parent = StatusGradientHost
-    PlayerCountLabel.Parent = StatusGradientHost
-    AntiCheatLine.Parent = StatusGradientHost
+    local StatusContent = Library:Create('Frame', {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 5,
+        Parent = StatusInner,
+    })
+
+    local StatusPadding = Library:Create('UIPadding', {
+        PaddingLeft = UDim.new(0, 8),
+        PaddingRight = UDim.new(0, 8),
+        PaddingTop = UDim.new(0, 4),
+        PaddingBottom = UDim.new(0, 6),
+        Parent = StatusContent,
+    })
+
+    local StatusLayout = Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Vertical,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 1),
+        Parent = StatusContent,
+    })
+
+    local StatusTitle = Library:CreateLabel({
+        Size = UDim2.new(1, 0, 0, 13),
+        TextSize = 13,
+        Text = 'Server info:',
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 6,
+        Parent = StatusContent,
+    })
+
+    local PlayerCountLabel = Library:CreateLabel({
+        Size = UDim2.new(1, 0, 0, 13),
+        TextSize = 13,
+        Text = 'Player Count: --/--',
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 6,
+        Parent = StatusContent,
+    })
+
+    local AntiCheatLine = Library:Create('Frame', {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 13),
+        ZIndex = 6,
+        Parent = StatusContent,
+    })
 
     local AntiCheatPrefix = Library:CreateLabel({
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 0, 1, 0),
-        TextSize = 14,
+        TextSize = 13,
         Text = 'AntiCheat Status: ',
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 7,
@@ -3820,7 +3814,7 @@ function Library:CreateWindow(...)
     local AntiCheatValue = Library:CreateLabel({
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 0, 1, 0),
-        TextSize = 14,
+        TextSize = 13,
         Text = 'Bypassed',
         TextColor3 = Color3.fromRGB(0, 255, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
