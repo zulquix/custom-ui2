@@ -44,13 +44,11 @@ local ThemeManager = {} do
 	end
 
 	function ThemeManager:LoadDefault()		
-		local theme = 'SodiumMidnight'
+		local theme = 'Default'
 		local content = isfile(self.Folder .. '/themes/default.txt') and readfile(self.Folder .. '/themes/default.txt')
 
 		if content and self.BuiltInThemes[content] then
 			theme = content
-		elseif self.BuiltInThemes[self.DefaultTheme] then
-			theme = self.DefaultTheme
 		end
 
 		Options.ThemeManager_ThemeList:SetValue(theme)
