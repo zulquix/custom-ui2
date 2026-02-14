@@ -3338,58 +3338,19 @@ do
         Parent = ScreenGui;
     })
 
-    local TopTitleInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.BackgroundColor,
-        BorderColor3 = Library.OutlineColor,
-        BorderMode = Enum.BorderMode.Inset,
-        Position = UDim2.new(0, 1, 0, 1),
-        Size = UDim2.new(1, -2, 1, -2),
-        ZIndex = 250,
-        Parent = Library.TopTitle,
-    })
-
-    Library:AddToRegistry(TopTitleInner, {
-        BackgroundColor3 = 'BackgroundColor',
-        BorderColor3 = 'OutlineColor',
-    }, true)
-
-    local TopTitleGradient = Library:Create('UIGradient', {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
-            ColorSequenceKeypoint.new(1, Library.BackgroundColor),
-        }),
-        Rotation = -90,
-        Parent = TopTitleInner,
-    })
-
-    Library:AddToRegistry(TopTitleGradient, {
-        Color = function()
-            return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
-                ColorSequenceKeypoint.new(1, Library.BackgroundColor),
-            })
-        end,
-    })
-
-    local TopTitlePadding = Library:Create('UIPadding', {
-        PaddingTop = UDim.new(0, 6),
-        PaddingBottom = UDim.new(0, 6),
-        Parent = TopTitleInner,
-    })
-
     local TopTitleLayout = Library:Create('UIListLayout', {
         FillDirection = Enum.FillDirection.Vertical,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, -4),
-        Parent = TopTitleInner,
+        Parent = Library.TopTitle,
     })
 
     local TopTitleMainLine = Library:Create('Frame', {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 26),
         ZIndex = 251,
-        Parent = TopTitleInner,
+        Parent = Library.TopTitle,
     })
 
     local TopTitleMainLayout = Library:Create('UIListLayout', {
@@ -3435,24 +3396,14 @@ do
         TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Center,
         ZIndex = 251,
-        Parent = TopTitleInner,
+        Parent = Library.TopTitle,
     })
 
     Library:AddToRegistry(TopTitleSub, {
         TextColor3 = 'FontColor',
     }, true)
 
-    local TopTitleAccentStroke = Library:Create('UIStroke', {
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-        Color = Library.AccentColor,
-        Thickness = 2,
-        Transparency = 0.25,
-        Parent = TopTitleInner,
-    })
-
-    Library:AddToRegistry(TopTitleAccentStroke, {
-        Color = 'AccentColor',
-    })
+    
 
     Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
