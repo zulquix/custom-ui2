@@ -16,6 +16,7 @@ local Window = Library:CreateWindow({
     Title = 'Example menu',
     Center = true,
     AutoShow = true,
+    Size = UDim2.fromOffset(680, 520),
     TabPadding = 8,
     MenuFadeTime = 0.2
 })
