@@ -503,6 +503,46 @@ local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
 
+MenuGroup:AddLabel('Panic bind'):AddKeyPicker('PanicKeybind', { Default = 'P', NoUI = true, Text = 'Panic keybind' })
+Library.PanicKeybind = Options.PanicKeybind
+
+MenuGroup:AddToggle('PanicUnloads', { Text = 'Panic unloads library', Default = false })
+
+MenuGroup:AddToggle('UISoundsEnabled', { Text = 'UI Sounds', Default = true, Callback = function(v)
+    if Library.UISounds then
+        Library.UISounds.Enabled = v
+    end
+end })
+
+MenuGroup:AddSlider('UISoundsVolume', { Text = 'UI Sound Volume', Default = 60, Min = 0, Max = 100, Rounding = 0, Callback = function(v)
+    if Library.UISounds then
+        Library.UISounds.Volume = (v / 100)
+    end
+end })
+
+do
+    local SearchGroup = Tabs['UI Settings']:AddLeftGroupbox('Search')
+    SearchGroup:AddInput('GlobalSearch', {
+        Default = '',
+        Text = 'Search options',
+        Tooltip = 'Searches all options by name',
+        Callback = function(v)
+            if Library and Library.SetGlobalSearchQuery then
+                Library:SetGlobalSearchQuery(v)
+            end
+        end,
+    })
+
+    SearchGroup:AddButton('Clear search', function()
+        if Options.GlobalSearch then
+            Options.GlobalSearch:SetValue('')
+        end
+        if Library and Library.SetGlobalSearchQuery then
+            Library:SetGlobalSearchQuery('')
+        end
+    end)
+end
+
 Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
 -- Addons:
