@@ -91,6 +91,11 @@ local ThemeManager = {} do
 			if type(theme) ~= 'string' then
 				theme = 'SodiumMidnight'
 			end
+			pcall(function()
+				if Toggles and Toggles.RGBAccent and Toggles.RGBAccent.Type == 'Toggle' then
+					Toggles.RGBAccent:SetValue(false)
+				end
+			end)
 			self:ApplyTheme(theme)
 			self.Library:Notify(string.format('Reset theme to %q', theme), 3)
 		end)
