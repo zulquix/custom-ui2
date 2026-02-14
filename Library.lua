@@ -756,6 +756,17 @@ function Library:SetFont(fontEnum)
     Library:UpdateFontUsingRegistry()
 end
 
+function Library:SetFontByName(fontName)
+    if type(fontName) ~= 'string' then
+        return
+    end
+    local enumItem = Enum.Font[fontName]
+    if not enumItem then
+        return
+    end
+    Library:SetFont(enumItem)
+end
+
 function Library:GetFontList()
     local out = {}
     for _, item in next, Enum.Font:GetEnumItems() do
