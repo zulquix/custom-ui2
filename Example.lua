@@ -531,18 +531,50 @@ ThemeManager:ApplyToTab(Tabs['UI Settings'])
 do
     local FontsGroup = Tabs['UI Settings']:AddLeftGroupbox('Fonts')
     local fonts = Library:GetFontList()
+
+    local FontSettingsFolder = 'SodiumLibSettings/settings'
+    local FontDefaultFile = FontSettingsFolder .. '/default-font.txt'
+
+    pcall(function()
+        if not isfolder('SodiumLibSettings') then
+            makefolder('SodiumLibSettings')
+        end
+        if not isfolder('SodiumLibSettings/settings') then
+            makefolder('SodiumLibSettings/settings')
+        end
+    end)
+
+    pcall(function()
+        if isfile(FontDefaultFile) then
+            local saved = readfile(FontDefaultFile)
+            if type(saved) == 'string' and Enum.Font[saved] then
+                Library:SetFontByName(saved)
+            end
+        end
+    end)
+
     FontsGroup:AddDropdown('UIFont', {
         Text = 'Font',
         Values = fonts,
         Default = table.find(fonts, Library.Font.Name) or 1,
         Tooltip = 'Changes the UI font',
         Callback = function(Value)
-            local enumItem = Enum.Font[Value]
-            if enumItem then
-                Library:SetFont(enumItem)
-            end
+            Library:SetFontByName(Value)
         end
     })
+
+    if Options and Options.UIFont and Options.UIFont.TextLabel then
+        pcall(function()
+            Options.UIFont.TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+        end)
+    end
+
+    FontsGroup:AddButton('Set default font', function()
+        pcall(function()
+            writefile(FontDefaultFile, tostring(Options.UIFont.Value))
+        end)
+        Library:Notify(string.format('Set default font to %q', tostring(Options.UIFont.Value)), 3)
+    end)
 end
 
 print("sigma hi")
