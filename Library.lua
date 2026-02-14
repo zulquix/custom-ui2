@@ -3648,7 +3648,7 @@ function Library:Notify(Text, Time, Type, Icon)
     local notifyOuter = self:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, 0, 0, 10);
+        Position = UDim2.new(1, 1, 0, 10);
         Size = UDim2.new(0, 0, 0, ySize);
         ClipsDescendants = true;
         ZIndex = 100;
@@ -3699,7 +3699,7 @@ function Library:Notify(Text, Time, Type, Icon)
     local leftColor = self:Create('Frame', {
         BackgroundColor3 = self.AccentColor;
         BorderSizePixel = 0;
-        Position = UDim2.new(1, -2, 0, -1);
+        Position = UDim2.new(1, -1, 0, -1);
         Size = UDim2.new(0, 3, 1, 2);
         ZIndex = 104;
         Parent = notifyOuter;
