@@ -90,7 +90,7 @@ local Library = {
     RiskColor = Color3.fromRGB(255, 50, 50),
 
     Black = Color3.new(0, 0, 0);
-    Font = Enum.Font.Code,
+    Font = (Enum.Font.Nunito or Enum.Font.Code),
 
     OpenedFrames = {};
     DependencyBoxes = {};
@@ -390,9 +390,6 @@ end
 
 function Library:_applyAccentColor(color)
     self.AccentColor = color
-    if self.ActiveTheme and self.Themes and self.Themes[self.ActiveTheme] then
-        self.Themes[self.ActiveTheme].AccentColor = color
-    end
     self.AccentColorDark = self:GetDarkerColor(self.AccentColor)
     self:UpdateColorsUsingRegistry()
     if type(self.OnAccentColorChanged) == 'function' then
@@ -2833,10 +2830,12 @@ do
             TextSize = 14;
             Text = '--';
             TextXAlignment = Enum.TextXAlignment.Left;
-            TextWrapped = true;
+            TextWrapped = false;
             ZIndex = 7;
             Parent = DropdownInner;
         });
+
+        DropdownInner.ClipsDescendants = true
 
         Library:OnHighlight(DropdownOuter, DropdownOuter,
             { BorderColor3 = 'AccentColor' },
@@ -3023,9 +3022,12 @@ do
                     TextSize = 14;
                     Text = Value;
                     TextXAlignment = Enum.TextXAlignment.Left;
+                    TextWrapped = false;
                     ZIndex = 25;
                     Parent = Button;
                 });
+
+                Button.ClipsDescendants = true
 
                 Library:OnHighlight(Button, Button,
                     { BorderColor3 = 'AccentColor', ZIndex = 24 },
