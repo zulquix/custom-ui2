@@ -1,4 +1,4 @@
-# LinoriaLib
+# SodiumLib
 Custom linoria lib modification
 
 ###### Example Script: 
