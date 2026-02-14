@@ -3331,55 +3331,127 @@ do
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(0.5, 0);
         Position = UDim2.new(0.5, 0, 0, 10);
-        Size = UDim2.new(0, 320, 0, 44);
+        Size = UDim2.new(0, 360, 0, 56);
         ZIndex = 250;
         Visible = false;
         Active = false;
         Parent = ScreenGui;
     })
 
+    local TopTitleInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor,
+        BorderColor3 = Library.OutlineColor,
+        BorderMode = Enum.BorderMode.Inset,
+        Position = UDim2.new(0, 1, 0, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        ZIndex = 250,
+        Parent = Library.TopTitle,
+    })
+
+    Library:AddToRegistry(TopTitleInner, {
+        BackgroundColor3 = 'MainColor',
+        BorderColor3 = 'OutlineColor',
+    }, true)
+
+    local TopTitleGradient = Library:Create('UIGradient', {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
+            ColorSequenceKeypoint.new(1, Library.MainColor),
+        }),
+        Rotation = -90,
+        Parent = TopTitleInner,
+    })
+
+    Library:AddToRegistry(TopTitleGradient, {
+        Color = function()
+            return ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
+                ColorSequenceKeypoint.new(1, Library.MainColor),
+            })
+        end,
+    })
+
+    local TopTitlePadding = Library:Create('UIPadding', {
+        PaddingTop = UDim.new(0, 6),
+        PaddingBottom = UDim.new(0, 6),
+        Parent = TopTitleInner,
+    })
+
     local TopTitleLayout = Library:Create('UIListLayout', {
         FillDirection = Enum.FillDirection.Vertical,
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, -2),
-        Parent = Library.TopTitle,
+        Padding = UDim.new(0, -4),
+        Parent = TopTitleInner,
     })
 
-    local TopTitleMain = Library:CreateLabel({
+    local TopTitleMainLine = Library:Create('Frame', {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 22),
-        Text = 'SodiumLib',
-        TextSize = 20,
-        TextXAlignment = Enum.TextXAlignment.Center,
+        Size = UDim2.new(1, 0, 0, 26),
         ZIndex = 251,
-        Parent = Library.TopTitle,
+        Parent = TopTitleInner,
     })
 
-    Library:AddToRegistry(TopTitleMain, {
+    local TopTitleMainLayout = Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 0),
+        Parent = TopTitleMainLine,
+    })
+
+    local TopTitleSodium = Library:CreateLabel({
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Text = 'Sodium',
+        TextSize = 26,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 252,
+        Parent = TopTitleMainLine,
+    })
+
+    Library:AddToRegistry(TopTitleSodium, {
         TextColor3 = 'AccentColor',
     }, true)
 
+    local TopTitleLib = Library:CreateLabel({
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Text = 'Lib',
+        TextSize = 26,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 252,
+        Parent = TopTitleMainLine,
+    })
+
+    TopTitleLib.TextColor3 = Color3.fromRGB(255, 255, 255)
+
     local TopTitleSub = Library:CreateLabel({
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 18),
+        Size = UDim2.new(1, 0, 0, 20),
         Text = 'Premium Lua library',
-        TextSize = 14,
+        TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Center,
         ZIndex = 251,
-        Parent = Library.TopTitle,
+        Parent = TopTitleInner,
     })
 
     Library:AddToRegistry(TopTitleSub, {
         TextColor3 = 'FontColor',
     }, true)
 
-    local TopTitleStroke = Library:Create('UIStroke', {
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
-        Color = Color3.new(0, 0, 0),
-        Thickness = 1,
-        Transparency = 0.35,
-        Parent = Library.TopTitle,
+    local TopTitleAccentStroke = Library:Create('UIStroke', {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = Library.AccentColor,
+        Thickness = 2,
+        Transparency = 0.25,
+        Parent = TopTitleInner,
+    })
+
+    Library:AddToRegistry(TopTitleAccentStroke, {
+        Color = 'AccentColor',
     })
 
     Library:Create('UIListLayout', {
