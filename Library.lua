@@ -2885,11 +2885,40 @@ do
             BorderColor3 = 'OutlineColor';
         });
 
+        local searchBarHeight = (Info.Searchable and 20) or 0
+
+        local SearchBox
+        if Info.Searchable then
+            SearchBox = Library:Create('TextBox', {
+                BackgroundColor3 = Library.MainColor,
+                BorderColor3 = Library.OutlineColor,
+                BorderMode = Enum.BorderMode.Inset,
+                ClearTextOnFocus = false,
+                PlaceholderText = 'Search...',
+                Text = '',
+                TextColor3 = Library.FontColor,
+                TextSize = 14,
+                Font = Library.Font,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(1, 0, 0, searchBarHeight),
+                ZIndex = 22,
+                Parent = ListInner,
+            })
+
+            Library:AddToRegistry(SearchBox, {
+                BackgroundColor3 = 'MainColor',
+                BorderColor3 = 'OutlineColor',
+                TextColor3 = 'FontColor',
+            }, true)
+        end
+
         local Scrolling = Library:Create('ScrollingFrame', {
             BackgroundTransparency = 1;
             BorderSizePixel = 0;
             CanvasSize = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 1, 0);
+            Position = UDim2.new(0, 0, 0, searchBarHeight);
+            Size = UDim2.new(1, 0, 1, -searchBarHeight);
             ZIndex = 21;
             Parent = ListInner;
 
@@ -2944,6 +2973,13 @@ do
             end;
         end;
 
+        local function getSearchQuery()
+            if SearchBox then
+                return (SearchBox.Text or ''):lower()
+            end
+            return ''
+        end
+
         function Dropdown:BuildDropdownList()
             local Values = Dropdown.Values;
             local Buttons = {};
@@ -2955,8 +2991,12 @@ do
             end;
 
             local Count = 0;
+            local query = getSearchQuery()
 
             for Idx, Value in next, Values do
+                if query ~= '' and not tostring(Value):lower():find(query, 1, true) then
+                    continue
+                end
                 local Table = {};
 
                 Count = Count + 1;
@@ -3059,8 +3099,14 @@ do
             Scrolling.CanvasSize = UDim2.fromOffset(0, (Count * 20) + 1);
 
             local Y = math.clamp(Count * 20, 0, MAX_DROPDOWN_ITEMS * 20) + 1;
-            RecalculateListSize(Y);
+            RecalculateListSize(Y + searchBarHeight);
         end;
+
+        if SearchBox then
+            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
+                Dropdown:BuildDropdownList()
+            end)
+        end
 
         function Dropdown:SetValues(NewValues)
             if NewValues then
