@@ -3339,7 +3339,7 @@ do
     })
 
     local TopTitleInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor,
+        BackgroundColor3 = Library.BackgroundColor,
         BorderColor3 = Library.OutlineColor,
         BorderMode = Enum.BorderMode.Inset,
         Position = UDim2.new(0, 1, 0, 1),
@@ -3349,14 +3349,14 @@ do
     })
 
     Library:AddToRegistry(TopTitleInner, {
-        BackgroundColor3 = 'MainColor',
+        BackgroundColor3 = 'BackgroundColor',
         BorderColor3 = 'OutlineColor',
     }, true)
 
     local TopTitleGradient = Library:Create('UIGradient', {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
+            ColorSequenceKeypoint.new(1, Library.BackgroundColor),
         }),
         Rotation = -90,
         Parent = TopTitleInner,
@@ -3365,8 +3365,8 @@ do
     Library:AddToRegistry(TopTitleGradient, {
         Color = function()
             return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
+                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
+                ColorSequenceKeypoint.new(1, Library.BackgroundColor),
             })
         end,
     })
@@ -3821,6 +3821,28 @@ function Library:CreateWindow(...)
         ZIndex = 1;
         Parent = ScreenGui;
     });
+
+    local function UpdateTopTitlePosition()
+        if not Library.TopTitle then
+            return
+        end
+
+        local absPos = Outer.AbsolutePosition
+        local absSize = Outer.AbsoluteSize
+        local ttSize = Library.TopTitle.AbsoluteSize
+
+        Library.TopTitle.Position = UDim2.fromOffset(
+            math.floor(absPos.X + (absSize.X / 2)),
+            math.floor(absPos.Y - ttSize.Y - 8)
+        )
+    end
+
+    if Library.TopTitle then
+        UpdateTopTitlePosition()
+        table.insert(Library.Signals, Outer:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateTopTitlePosition))
+        table.insert(Library.Signals, Outer:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTopTitlePosition))
+        table.insert(Library.Signals, Library.TopTitle:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTopTitlePosition))
+    end
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
