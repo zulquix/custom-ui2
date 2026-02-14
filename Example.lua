@@ -520,29 +520,6 @@ MenuGroup:AddSlider('UISoundsVolume', { Text = 'UI Sound Volume', Default = 60, 
     end
 end })
 
-do
-    local SearchGroup = Tabs['UI Settings']:AddLeftGroupbox('Search')
-    SearchGroup:AddInput('GlobalSearch', {
-        Default = '',
-        Text = 'Search options',
-        Tooltip = 'Searches all options by name',
-        Callback = function(v)
-            if Library and Library.SetGlobalSearchQuery then
-                Library:SetGlobalSearchQuery(v)
-            end
-        end,
-    })
-
-    SearchGroup:AddButton('Clear search', function()
-        if Options.GlobalSearch then
-            Options.GlobalSearch:SetValue('')
-        end
-        if Library and Library.SetGlobalSearchQuery then
-            Library:SetGlobalSearchQuery('')
-        end
-    end)
-end
-
 Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
 -- Addons:
