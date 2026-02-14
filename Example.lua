@@ -527,29 +527,6 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
 
--- Place RGB Accent right under AccentColor in UI Settings
-do
-    local ThemesGroupbox = Tabs['UI Settings'].Groupboxes and Tabs['UI Settings'].Groupboxes['Themes']
-    if ThemesGroupbox and ThemesGroupbox.Container and Options and Options.AccentColor then
-        local accentLabel = Options.AccentColor.TextLabel
-        if accentLabel and accentLabel.Parent == ThemesGroupbox.Container then
-            local rgbToggle = ThemesGroupbox:AddToggle('RGBAccent', {
-                Text = 'RGB Accent (Animated)',
-                Default = false,
-                Tooltip = 'Animates the AccentColor using a rainbow loop',
-                Callback = function(Value)
-                    Library:ToggleRGB(Value, 3)
-                end
-            })
-
-            local rgbObj = rgbToggle and rgbToggle.TextLabel
-            if rgbObj then
-                rgbObj.LayoutOrder = accentLabel.LayoutOrder + 0.1
-            end
-        end
-    end
-end
-
 -- Fonts
 do
     local FontsGroup = Tabs['UI Settings']:AddLeftGroupbox('Fonts')
