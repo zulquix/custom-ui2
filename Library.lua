@@ -99,6 +99,8 @@ local Library = {
     ScreenGui = ScreenGui;
 };
 
+Library.AccentRegistry = {};
+
 Library.Blur = {
     Name = 'LinoriaBackgroundBlur',
     Amount = 18,
@@ -391,7 +393,7 @@ end
 function Library:_applyAccentColor(color)
     self.AccentColor = color
     self.AccentColorDark = self:GetDarkerColor(self.AccentColor)
-    self:UpdateColorsUsingRegistry()
+    self:UpdateAccentUsingRegistry()
     pcall(function()
         for _, t in next, Toggles do
             if type(t) == 'table' and t.Type == 'Toggle' and type(t.UpdateColors) == 'function' then
@@ -480,6 +482,18 @@ function Library:SafeCallback(f, ...)
         return Library:Notify(event:sub(i + 1), 3);
     end;
 end;
+
+function Library:UpdateAccentUsingRegistry()
+    for _, Object in next, Library.AccentRegistry do
+        if Object and Object.Instance and Object.Instance.Parent and Object.Properties then
+            for Property, ColorIdx in next, Object.Properties do
+                if ColorIdx == 'AccentColor' or ColorIdx == 'AccentColorDark' then
+                    Object.Instance[Property] = Library[ColorIdx]
+                end
+            end
+        end
+    end
+end
 
 function Library:AttemptSave()
     if Library.SaveManager then
@@ -695,6 +709,13 @@ function Library:AddToRegistry(Instance, Properties, IsHud)
 
     table.insert(Library.Registry, Data);
     Library.RegistryMap[Instance] = Data;
+
+    for _, v in next, Properties do
+        if v == 'AccentColor' or v == 'AccentColorDark' then
+            table.insert(Library.AccentRegistry, Data)
+            break
+        end
+    end
 
     if IsHud then
         table.insert(Library.HudRegistry, Data);
