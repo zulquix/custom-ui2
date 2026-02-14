@@ -503,6 +503,48 @@ local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
 
+MenuGroup:AddToggle('SodiumWatermark', {
+    Text = 'SodiumLib watermark',
+    Default = true,
+    Tooltip = 'Shows the SodiumLib title at the top while the menu is open',
+}):OnChanged(function()
+    if Library.SetSodiumWatermarkEnabled then
+        Library:SetSodiumWatermarkEnabled(Toggles.SodiumWatermark.Value)
+    end
+end)
+
+MenuGroup:AddToggle('UISounds', {
+    Text = 'UI sounds',
+    Default = true,
+    Tooltip = 'Plays UI click sounds for tabs, dropdowns, toggles, and buttons',
+}):OnChanged(function()
+    if Library.SetUISoundsEnabled then
+        Library:SetUISoundsEnabled(Toggles.UISounds.Value)
+    end
+end)
+
+MenuGroup:AddSlider('UISoundVolume', {
+    Text = 'UI sound volume',
+    Default = 55,
+    Min = 0,
+    Max = 100,
+    Rounding = 0,
+    Compact = true,
+}):OnChanged(function()
+    if Library.SetUISoundVolume then
+        Library:SetUISoundVolume(Options.UISoundVolume.Value / 100)
+    end
+end)
+
+pcall(function()
+    if Library.SetUISoundsEnabled then
+        Library:SetUISoundsEnabled(Toggles.UISounds.Value)
+    end
+    if Library.SetUISoundVolume then
+        Library:SetUISoundVolume(Options.UISoundVolume.Value / 100)
+    end
+end)
+
 Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
 -- Addons:
