@@ -513,38 +513,6 @@ MenuGroup:AddToggle('SodiumWatermark', {
     end
 end)
 
-MenuGroup:AddToggle('UISounds', {
-    Text = 'UI sounds',
-    Default = true,
-    Tooltip = 'Plays UI click sounds for tabs, dropdowns, toggles, and buttons',
-}):OnChanged(function()
-    if Library.SetUISoundsEnabled then
-        Library:SetUISoundsEnabled(Toggles.UISounds.Value)
-    end
-end)
-
-MenuGroup:AddSlider('UISoundVolume', {
-    Text = 'UI sound volume',
-    Default = 55,
-    Min = 0,
-    Max = 100,
-    Rounding = 0,
-    Compact = true,
-}):OnChanged(function()
-    if Library.SetUISoundVolume then
-        Library:SetUISoundVolume(Options.UISoundVolume.Value / 100)
-    end
-end)
-
-pcall(function()
-    if Library.SetUISoundsEnabled then
-        Library:SetUISoundsEnabled(Toggles.UISounds.Value)
-    end
-    if Library.SetUISoundVolume then
-        Library:SetUISoundVolume(Options.UISoundVolume.Value / 100)
-    end
-end)
-
 Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
 -- Addons:
