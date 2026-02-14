@@ -3330,7 +3330,7 @@ do
     Library.TopTitle = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(0.5, 0);
-        Position = UDim2.new(0.5, 0, 0, 10);
+        Position = UDim2.new(0.5, 0, 0, 30);
         Size = UDim2.new(0, 360, 0, 56);
         ZIndex = 250;
         Visible = false;
@@ -3339,7 +3339,7 @@ do
     })
 
     local TopTitleInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.MainColor,
+        BackgroundColor3 = Library.BackgroundColor,
         BorderColor3 = Library.OutlineColor,
         BorderMode = Enum.BorderMode.Inset,
         Position = UDim2.new(0, 1, 0, 1),
@@ -3349,14 +3349,14 @@ do
     })
 
     Library:AddToRegistry(TopTitleInner, {
-        BackgroundColor3 = 'MainColor',
+        BackgroundColor3 = 'BackgroundColor',
         BorderColor3 = 'OutlineColor',
     }, true)
 
     local TopTitleGradient = Library:Create('UIGradient', {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-            ColorSequenceKeypoint.new(1, Library.MainColor),
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
+            ColorSequenceKeypoint.new(1, Library.BackgroundColor),
         }),
         Rotation = -90,
         Parent = TopTitleInner,
@@ -3365,8 +3365,8 @@ do
     Library:AddToRegistry(TopTitleGradient, {
         Color = function()
             return ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
-                ColorSequenceKeypoint.new(1, Library.MainColor),
+                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.BackgroundColor)),
+                ColorSequenceKeypoint.new(1, Library.BackgroundColor),
             })
         end,
     })
