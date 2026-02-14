@@ -46,6 +46,13 @@ LeftGroupBox:AddButton({
     Tooltip = 'Shows input blocking overlay when open'
 })
 
+LeftGroupBox:AddButton({
+    Text = 'Test Notification',
+    Func = function()
+        Library:Notify('Test notification (AccentColor)', 3)
+    end,
+})
+
 -- We can also get our Main tab via the following code:
 -- local LeftGroupBox = Window.Tabs.Main:AddLeftGroupbox('Groupbox')
 
@@ -557,6 +564,7 @@ do
         Text = 'Font',
         Values = fonts,
         Default = table.find(fonts, Library.Font.Name) or 1,
+        Searchable = true,
         Tooltip = 'Changes the UI font',
         Callback = function(Value)
             Library:SetFontByName(Value)
