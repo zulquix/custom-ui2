@@ -125,156 +125,15 @@ local Library = {
     ScreenGui = ScreenGui;
 };
 
-Library.GlobalSearch = {
-    Query = '',
-    Matches = {},
-    Index = {},
-    Cursor = 0,
-}
-
-Library._currentTab = nil
 Library._isTyping = false
 
 function Library:IsTyping()
     return self._isTyping
 end
 
-function Library:_registerOptionForSearch(opt)
-    if type(opt) ~= 'table' then return end
-    if not self.GlobalSearch or not self.GlobalSearch.Index then return end
-
-    opt._searchText = self:_getOptionSearchText(opt)
-    opt._tab = self._currentTab
-
-    if typeof(opt.Container) == 'Instance' and opt.Container:IsA('GuiObject') then
-        opt._searchFrame = opt.Container
-    elseif typeof(opt.Frame) == 'Instance' and opt.Frame:IsA('GuiObject') then
-        opt._searchFrame = opt.Frame
-    elseif typeof(opt.DisplayFrame) == 'Instance' and opt.DisplayFrame:IsA('GuiObject') then
-        opt._searchFrame = opt.DisplayFrame
-    end
-
-    table.insert(self.GlobalSearch.Index, opt)
-end
-
-function Library:_scrollToOption(opt)
-    if type(opt) ~= 'table' then return end
-    local frame = opt._searchFrame
-    local tab = opt._tab
-    if not frame or not tab then return end
-
-    pcall(function()
-        if tab.ShowTab then
-            tab:ShowTab()
-        end
-    end)
-
-    local parent = frame.Parent
-    while parent and not parent:IsA('ScrollingFrame') do
-        parent = parent.Parent
-    end
-
-    if parent and parent:IsA('ScrollingFrame') then
-        local y = math.max(0, frame.AbsolutePosition.Y - parent.AbsolutePosition.Y)
-        parent.CanvasPosition = Vector2.new(parent.CanvasPosition.X, math.max(0, y - 24))
-    end
-end
-
-function Library:_setSelectedSearchMatch(idx)
-    local matches = self.GlobalSearch.Matches
-    if type(matches) ~= 'table' or #matches == 0 then return end
-    idx = math.clamp(idx, 1, #matches)
-    self.GlobalSearch.Cursor = idx
-    local opt = matches[idx]
-    if not opt then return end
-
-    self:_scrollToOption(opt)
-
-    local frame = opt._searchFrame
-    if frame and frame.Parent then
-        local old = frame.BackgroundTransparency
-        pcall(function()
-            frame.BackgroundTransparency = math.min(old, 0.65)
-        end)
-        task.delay(0.35, function()
-            if self.GlobalSearch and self.GlobalSearch.Query ~= '' and frame and frame.Parent then
-                pcall(function()
-                    frame.BackgroundTransparency = math.min(old, 0.85)
-                end)
-            end
-        end)
-    end
-end
-
-function Library:SearchNext()
-    local m = self.GlobalSearch.Matches
-    if type(m) ~= 'table' or #m == 0 then return end
-    local idx = (self.GlobalSearch.Cursor or 0) + 1
-    if idx > #m then idx = 1 end
-    self:_setSelectedSearchMatch(idx)
-end
-
-function Library:SearchPrev()
-    local m = self.GlobalSearch.Matches
-    if type(m) ~= 'table' or #m == 0 then return end
-    local idx = (self.GlobalSearch.Cursor or 1) - 1
-    if idx < 1 then idx = #m end
-    self:_setSelectedSearchMatch(idx)
-end
 
 Library.UISounds = _InitialUISounds
 
-function Library:_getOptionSearchText(opt)
-    if type(opt) ~= 'table' then return '' end
-    local parts = {}
-    if type(opt.Text) == 'string' then table.insert(parts, opt.Text) end
-    if type(opt.Name) == 'string' then table.insert(parts, opt.Name) end
-    if type(opt.Idx) == 'string' then table.insert(parts, opt.Idx) end
-    return table.concat(parts, ' '):lower()
-end
-
-function Library:SetGlobalSearchQuery(q)
-    if type(q) ~= 'string' then q = tostring(q or '') end
-    q = q:lower()
-
-    self.GlobalSearch.Query = q
-
-    for _, meta in next, (self.GlobalSearch.Matches or {}) do
-        if meta and meta.Frame and meta.Frame.Parent then
-            pcall(function()
-                meta.Frame.BackgroundTransparency = meta._oldBgT or meta.Frame.BackgroundTransparency
-            end)
-        end
-    end
-
-    self.GlobalSearch.Matches = {}
-
-    if q == '' then
-        return
-    end
-
-    for i = 1, #self.GlobalSearch.Index do
-        local opt = self.GlobalSearch.Index[i]
-        if type(opt) == 'table' then
-            local text = opt._searchText or self:_getOptionSearchText(opt)
-            if text:find(q, 1, true) then
-                table.insert(self.GlobalSearch.Matches, opt)
-                local frame = opt._searchFrame
-                if frame and frame.Parent then
-                    local old = frame.BackgroundTransparency
-                    opt._searchOldBgT = old
-                    pcall(function()
-                        frame.BackgroundTransparency = math.min(old, 0.85)
-                    end)
-                end
-            end
-        end
-    end
-
-    if #self.GlobalSearch.Matches > 0 then
-        self:_setSelectedSearchMatch(1)
-    end
-end
 
 function Library:DoPanicAction()
     pcall(function()
@@ -284,7 +143,7 @@ function Library:DoPanicAction()
     end)
 
     pcall(function()
-        if Toggled and self.Toggle then
+        if self._menuOpen and self.Toggle then
             self:Toggle()
         end
     end)
@@ -2066,9 +1925,6 @@ do
         KeyPicker:Update();
 
         Options[Idx] = KeyPicker;
-        KeyPicker.Idx = Idx
-        KeyPicker.Text = Info.Text
-        Library:_registerOptionForSearch(KeyPicker)
 
         return KeyPicker;
     end;
@@ -2576,9 +2432,6 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Textbox;
-        Textbox.Idx = Idx
-        Textbox.Text = Info.Text
-        Library:_registerOptionForSearch(Textbox)
 
         return Textbox;
     end;
@@ -2755,9 +2608,6 @@ do
         setmetatable(Toggle, BaseAddons);
 
         Toggles[Idx] = Toggle;
-        Toggle.Idx = Idx
-        Toggle.Text = Info.Text
-        Library:_registerOptionForSearch(Toggle)
 
         Library:UpdateDependencyBoxes();
 
@@ -2956,9 +2806,7 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Slider;
-        Slider.Idx = Idx
-        Slider.Text = Info.Text
-        Library:_registerOptionForSearch(Slider)
+
         return Slider;
     end;
 
@@ -3458,9 +3306,6 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Dropdown;
-        Dropdown.Idx = Idx
-        Dropdown.Text = Info.Text
-        Library:_registerOptionForSearch(Dropdown)
 
         return Dropdown;
     end;
@@ -4505,6 +4350,7 @@ function Library:CreateWindow(...)
         local FadeTime = Config.MenuFadeTime;
         Fading = true;
         Toggled = (not Toggled);
+        Library._menuOpen = Toggled
 
         pcall(function()
             ToggleSound:Play()
@@ -4625,6 +4471,13 @@ function Library:CreateWindow(...)
     end
 
     Library:GiveSignal(InputService.InputBegan:Connect(function(Input, Processed)
+        if Processed then
+            return
+        end
+
+        if Library:IsTyping() then
+            return
+        end
         if type(Library.ToggleKeybind) == 'table' and Library.ToggleKeybind.Type == 'KeyPicker' then
             if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.ToggleKeybind.Value then
                 task.spawn(Library.Toggle)
@@ -4656,6 +4509,12 @@ local function OnPlayerChange()
         end;
     end;
 end;
+
+Players.PlayerAdded:Connect(OnPlayerChange);
+Players.PlayerRemoving:Connect(OnPlayerChange);
+
+getgenv().Library = Library
+return Library
 
 Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
