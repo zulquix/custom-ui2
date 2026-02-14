@@ -159,7 +159,7 @@ Library.Themes = {
     },
 };
 
-Library.ActiveTheme = 'SodiumDefault';
+Library.ActiveTheme = 'SodiumMidnight';
 pcall(function()
     Library:SetTheme(Library.ActiveTheme)
 end)
@@ -733,6 +733,37 @@ function Library:UpdateColorsUsingRegistry()
         end;
     end;
 end;
+
+function Library:UpdateFontUsingRegistry()
+    for _, Object in next, Library.Registry do
+        local inst = Object and Object.Instance
+        if inst and (inst:IsA('TextLabel') or inst:IsA('TextButton') or inst:IsA('TextBox')) then
+            pcall(function()
+                inst.Font = Library.Font
+            end)
+        end
+    end
+end
+
+function Library:SetFont(fontEnum)
+    if typeof(fontEnum) ~= 'EnumItem' then
+        return
+    end
+    if fontEnum.EnumType ~= Enum.Font then
+        return
+    end
+    Library.Font = fontEnum
+    Library:UpdateFontUsingRegistry()
+end
+
+function Library:GetFontList()
+    local out = {}
+    for _, item in next, Enum.Font:GetEnumItems() do
+        table.insert(out, item.Name)
+    end
+    table.sort(out)
+    return out
+end
 
 function Library:GiveSignal(Signal)
     -- Only used for signals not attached to library instances, as those should be cleaned up on object destruction by Roblox
@@ -3224,7 +3255,8 @@ end;
 do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
-        Position = UDim2.new(0, 0, 0, 40);
+        AnchorPoint = Vector2.new(1, 0);
+        Position = UDim2.new(1, -10, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
@@ -3388,9 +3420,9 @@ function Library:_reflowNotifications()
     local y = 10
     for i = 1, #self.NotificationQueue do
         local n = self.NotificationQueue[i]
-        if n and n.Outer and n.Outer.Parent then
-            self:Tween(n.Outer, self.Animation.TweenInfoFast, { Position = UDim2.new(0, 100, 0, y) })
-            y = y + n.Outer.AbsoluteSize.Y + (self.NotificationPadding or 6)
+        if n and n.Outer then
+            n.Outer.Position = UDim2.new(1, -10, 0, y)
+            y = y + (n.Outer.AbsoluteSize.Y + (self.NotificationPadding or 6))
         end
     end
 end
@@ -3472,7 +3504,7 @@ function Library:Notify(Text, Time, Type, Icon)
     })
 
     local leftColor = self:Create('Frame', {
-        BackgroundColor3 = self:_notifyColorForType(Type);
+        BackgroundColor3 = self.AccentColor;
         BorderSizePixel = 0;
         Position = UDim2.new(0, -1, 0, -1);
         Size = UDim2.new(0, 3, 1, 2);
@@ -3504,9 +3536,7 @@ function Library:Notify(Text, Time, Type, Icon)
     })
 
     self:AddToRegistry(leftColor, {
-        BackgroundColor3 = function()
-            return self:_notifyColorForType(Type)
-        end,
+        BackgroundColor3 = 'AccentColor',
     }, true)
 
     local entry = {
