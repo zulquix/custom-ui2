@@ -3321,11 +3321,66 @@ do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, 0, 0, 40);
+        Position = UDim2.new(1, 2, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
     });
+
+    Library.TopTitle = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        AnchorPoint = Vector2.new(0.5, 0);
+        Position = UDim2.new(0.5, 0, 0, 10);
+        Size = UDim2.new(0, 320, 0, 44);
+        ZIndex = 250;
+        Visible = false;
+        Active = false;
+        Parent = ScreenGui;
+    })
+
+    local TopTitleLayout = Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, -2),
+        Parent = Library.TopTitle,
+    })
+
+    local TopTitleMain = Library:CreateLabel({
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 22),
+        Text = 'SodiumLib',
+        TextSize = 20,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 251,
+        Parent = Library.TopTitle,
+    })
+
+    Library:AddToRegistry(TopTitleMain, {
+        TextColor3 = 'AccentColor',
+    }, true)
+
+    local TopTitleSub = Library:CreateLabel({
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 18),
+        Text = 'Premium Lua library',
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        ZIndex = 251,
+        Parent = Library.TopTitle,
+    })
+
+    Library:AddToRegistry(TopTitleSub, {
+        TextColor3 = 'FontColor',
+    }, true)
+
+    local TopTitleStroke = Library:Create('UIStroke', {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+        Color = Color3.new(0, 0, 0),
+        Thickness = 1,
+        Transparency = 0.35,
+        Parent = Library.TopTitle,
+    })
 
     Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
@@ -3521,7 +3576,7 @@ function Library:Notify(Text, Time, Type, Icon)
     local notifyOuter = self:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, -2, 0, 10);
+        Position = UDim2.new(1, 0, 0, 10);
         Size = UDim2.new(0, 0, 0, ySize);
         ClipsDescendants = true;
         ZIndex = 100;
@@ -4270,6 +4325,9 @@ function Library:CreateWindow(...)
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
+            if Library.TopTitle then
+                Library.TopTitle.Visible = true;
+            end
 
             local startPos = Outer.Position
             Outer.Position = startPos + UDim2.fromOffset(0, 22)
@@ -4352,6 +4410,9 @@ function Library:CreateWindow(...)
         task.wait(FadeTime);
 
         Outer.Visible = Toggled;
+        if Library.TopTitle then
+            Library.TopTitle.Visible = Toggled;
+        end
 
         if not Toggled then
             -- Reset position in case of interruptions
