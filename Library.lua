@@ -392,6 +392,13 @@ function Library:_applyAccentColor(color)
     self.AccentColor = color
     self.AccentColorDark = self:GetDarkerColor(self.AccentColor)
     self:UpdateColorsUsingRegistry()
+    pcall(function()
+        for _, t in next, Toggles do
+            if type(t) == 'table' and t.Type == 'Toggle' and type(t.UpdateColors) == 'function' then
+                t:UpdateColors()
+            end
+        end
+    end)
     if type(self.OnAccentColorChanged) == 'function' then
         self:SafeCallback(self.OnAccentColorChanged, color)
     end
@@ -2362,11 +2369,6 @@ do
             Parent = Container;
         });
 
-        Library:AddToRegistry(ToggleOuter, {
-            BackgroundColor3 = 'MainColor';
-            BorderColor3 = 'OutlineColor';
-        });
-
         local ToggleLabel = Library:CreateLabel({
             Size = UDim2.new(0, 216, 1, 0);
             Position = UDim2.new(1, 6, 0, 0);
@@ -2413,12 +2415,6 @@ do
             local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
             ToggleOuter.BackgroundColor3 = bg
             ToggleOuter.BorderColor3 = bc
-
-            local outerReg = Library.RegistryMap[ToggleOuter]
-            if outerReg then
-                outerReg.Properties.BackgroundColor3 = Toggle.Value and 'AccentColor' or 'MainColor';
-                outerReg.Properties.BorderColor3 = Toggle.Value and 'AccentColorDark' or 'OutlineColor';
-            end
         end;
 
         function Toggle:OnChanged(Func)
