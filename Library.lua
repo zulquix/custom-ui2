@@ -109,6 +109,43 @@ Library.Blur = {
     Instance = nil,
 };
 
+Library.Sounds = {
+    Tab = nil,
+    Dropdown = nil,
+    Toggle = nil,
+    Button = nil,
+};
+
+function Library:_initSounds()
+    if self.Sounds.Tab then
+        return
+    end
+
+    local function make(id)
+        local s = Instance.new('Sound')
+        s.SoundId = 'rbxassetid://' .. tostring(id)
+        s.Volume = 0.55
+        s.Name = 'SodiumLibUISound'
+        s.Parent = self.ScreenGui
+        return s
+    end
+
+    self.Sounds.Tab = make(139719503904449)
+    self.Sounds.Dropdown = make(137210144318481)
+    self.Sounds.Toggle = make(9120097951)
+    self.Sounds.Button = make(9120099090)
+end
+
+function Library:PlayUISound(kind)
+    pcall(function()
+        self:_initSounds()
+        local s = self.Sounds[kind]
+        if s then
+            s:Play()
+        end
+    end)
+end
+
 Library.InputBlock = {
     ActionName = 'Linoria_InputBlock',
     Bound = false,
@@ -125,6 +162,8 @@ Library.Animation = {
 };
 
 Library.PerformanceMode = false;
+
+Library.SodiumWatermarkEnabled = true;
 
 Library.Themes = {
     SodiumDefault = {
@@ -543,6 +582,14 @@ function Library:CreateLabel(Properties, IsHud)
 
     return Library:Create(_Instance, Properties);
 end;
+
+function Library:SetSodiumWatermarkEnabled(enabled)
+    self.SodiumWatermarkEnabled = not not enabled
+    if self.TopTitle then
+        local shouldShow = self.SodiumWatermarkEnabled and (self.Toggled == true)
+        self.TopTitle.Visible = shouldShow
+    end
+end
 
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
@@ -2057,6 +2104,8 @@ do
                 if not ValidateClick(Input) then return end
                 if Button.Locked then return end
 
+                Library:PlayUISound('Button')
+
                 if Button.DoubleClick then
                     Library:RemoveFromRegistry(Button.Label)
                     Button.Label.TextColor3 = Library.AccentColor
@@ -2511,6 +2560,7 @@ do
 
         ToggleRegion.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
+                Library:PlayUISound('Toggle')
                 Toggle:SetValue(not Toggle.Value);
                 Library:AttemptSave();
             end;
@@ -3061,6 +3111,7 @@ do
 
                 ButtonLabel.InputBegan:Connect(function(Input)
                     if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        Library:PlayUISound('Dropdown')
                         local Try = not Selected;
 
                         if Dropdown:GetActiveValues() == 1 and (not Try) and (not Info.AllowNull) then
@@ -3168,6 +3219,7 @@ do
 
         DropdownOuter.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
+                Library:PlayUISound('Dropdown')
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
                 else
@@ -3366,8 +3418,10 @@ do
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Text = 'Sodium',
+        Font = Enum.Font.GothamBlack,
         TextSize = 26,
         TextXAlignment = Enum.TextXAlignment.Center,
+        TextStrokeTransparency = 1,
         ZIndex = 252,
         Parent = TopTitleMainLine,
     })
@@ -3381,8 +3435,10 @@ do
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Text = 'Lib',
+        Font = Enum.Font.GothamBlack,
         TextSize = 26,
         TextXAlignment = Enum.TextXAlignment.Center,
+        TextStrokeTransparency = 1,
         ZIndex = 252,
         Parent = TopTitleMainLine,
     })
@@ -3393,8 +3449,10 @@ do
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 20),
         Text = 'Premium Lua library',
+        Font = Enum.Font.GothamBold,
         TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Center,
+        TextStrokeTransparency = 1,
         ZIndex = 251,
         Parent = Library.TopTitle,
     })
@@ -3739,6 +3797,8 @@ end
 function Library:CreateWindow(...)
     local Arguments = { ... }
     local Config = { AnchorPoint = Vector2.zero }
+
+    Library:_initSounds()
 
     if type(...) == 'table' then
         Config = ...;
@@ -4259,6 +4319,7 @@ function Library:CreateWindow(...)
 
                 Button.InputBegan:Connect(function(Input)
                     if Input.UserInputType == Enum.UserInputType.MouseButton1 and not Library:MouseIsOverOpenedFrame() then
+                        Library:PlayUISound('Tab')
                         Tab:Show();
                         Tab:Resize();
                     end;
@@ -4295,6 +4356,7 @@ function Library:CreateWindow(...)
 
         TabButton.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+                Library:PlayUISound('Tab')
                 Tab:ShowTab();
             end;
         end);
@@ -4329,6 +4391,7 @@ function Library:CreateWindow(...)
         local FadeTime = Config.MenuFadeTime;
         Fading = true;
         Toggled = (not Toggled);
+        self.Toggled = Toggled;
 
         pcall(function()
             ToggleSound:Play()
@@ -4349,7 +4412,7 @@ function Library:CreateWindow(...)
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
             if Library.TopTitle then
-                Library.TopTitle.Visible = true;
+                Library.TopTitle.Visible = (Library.SodiumWatermarkEnabled == true);
             end
 
             local startPos = Outer.Position
@@ -4434,7 +4497,7 @@ function Library:CreateWindow(...)
 
         Outer.Visible = Toggled;
         if Library.TopTitle then
-            Library.TopTitle.Visible = Toggled;
+            Library.TopTitle.Visible = (Toggled and (Library.SodiumWatermarkEnabled == true)) or false;
         end
 
         if not Toggled then
