@@ -27,81 +27,6 @@ ProtectGui(ScreenGui);
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
-pcall(function()
-    for _, v in next, Lighting:GetChildren() do
-        if v:IsA('BlurEffect') or v:IsA('DepthOfFieldEffect') then
-            v:Destroy()
-        end
-    end
-end)
-
-pcall(function()
-    if type(setfpscap) == 'function' then
-        setfpscap(999)
-    elseif type(set_fps_cap) == 'function' then
-        set_fps_cap(999)
-    end
-end)
-
-local ToggleSound = Instance.new('Sound')
-ToggleSound.Name = 'ToggleSound'
-ToggleSound.SoundId = 'rbxassetid://85146328206277'
-ToggleSound.Volume = 0.6
-ToggleSound.Parent = ScreenGui
-
-local _InitialUISounds = {
-    Enabled = true,
-    Volume = 0.6,
-    Toggle = 'rbxassetid://126347354635406',
-    Dropdown = 'rbxassetid://87437544236708',
-    Notify = 'rbxassetid://85240253037283',
-}
-
-local function PlayUISoundImpl(self, kind)
-    if not self.UISounds or not self.UISounds.Enabled then return end
-
-    local id = self.UISounds[kind]
-    if type(id) ~= 'string' or id == '' then return end
-
-    self._uiSoundCache = self._uiSoundCache or {}
-    local s = self._uiSoundCache[kind]
-    if not s then
-        s = Instance.new('Sound')
-        s.Name = 'UI_' .. tostring(kind)
-        s.Parent = ScreenGui
-        self._uiSoundCache[kind] = s
-    end
-
-    s.SoundId = id
-    s.Volume = self.UISounds.Volume or 0.6
-    pcall(function()
-        s:Stop()
-        s.TimePosition = 0
-        s:Play()
-    end)
-end
-
--- Visual overlay for interaction blocking when UI is open.
--- Purely visual: does not change gameplay logic, only captures input.
-
-local InteractionBlocker = Instance.new('TextButton')
-InteractionBlocker.Name = 'InteractionBlocker'
-InteractionBlocker.BackgroundColor3 = Color3.new(0, 0, 0)
-InteractionBlocker.BackgroundTransparency = 1
-InteractionBlocker.BorderSizePixel = 0
-InteractionBlocker.AutoButtonColor = false
-InteractionBlocker.Text = ''
-InteractionBlocker.Visible = false
-InteractionBlocker.ZIndex = 0
-InteractionBlocker.Size = UDim2.fromScale(1, 1)
-InteractionBlocker.Parent = ScreenGui
-
-InteractionBlocker.BackgroundTransparency = 1
-InteractionBlocker.Visible = false
-
-InteractionBlocker.MouseButton1Down:Connect(function() end)
-InteractionBlocker.MouseButton2Down:Connect(function() end)
-
 local Toggles = {};
 local Options = {};
 
@@ -127,77 +52,11 @@ local Library = {
     -- Stuff that you should not change unless you know what you're doing
     OpenedFrames = {};
     DependencyBoxes = {};
-}
-
-Library.PlayUISound = PlayUISoundImpl
-
     Signals = {};
     ScreenGui = ScreenGui;
 };
 
-Library._isTyping = false
-
-function Library:IsTyping()
-    return self._isTyping
-end
-
-
-Library.UISounds = _InitialUISounds
-
-
-function Library:DoPanicAction()
-    pcall(function()
-        if self.RGB then
-            self.RGB.Enabled = false
-        end
-    end)
-
-    pcall(function()
-        if self._menuOpen and self.Toggle then
-            self:Toggle()
-        end
-    end)
-
-    local shouldUnload = false
-    pcall(function()
-        if Toggles and Toggles.PanicUnloads and Toggles.PanicUnloads.Type == 'Toggle' then
-            shouldUnload = Toggles.PanicUnloads.Value
-        end
-    end)
-
-    if shouldUnload and self.Unload then
-        pcall(function()
-            self:Unload()
-        end)
-    end
-end
-
 Library.AccentRegistry = {};
-
-Library.Blur = {
-    Name = 'LinoriaBackgroundBlur',
-    Amount = 18,
-    TweenIn = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-    TweenOut = TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-    Instance = nil,
-};
-
-Library.InputBlock = {
-    ActionName = 'Linoria_InputBlock',
-    Bound = false,
-};
-
-Library.Animation = {
-    Enabled = true,
-    TweenInfoFast = TweenInfo.new(0.10, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-    TweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-    TweenInfoSlow = TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
-    TweenInfoSpring = TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    TweenInfoSpringFast = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-    TweenInfoLinearFast = TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
-};
-
-Library.PerformanceMode = false;
 
 Library.Themes = {
     SodiumDefault = {
@@ -238,187 +97,11 @@ Library.ActiveTheme = 'SodiumMidnight';
 pcall(function()
     Library:SetTheme(Library.ActiveTheme)
 end)
-Library.RGB = {
-    Enabled = false,
-    Speed = 3, -- higher = faster
-};
-
-Library.NotificationQueue = {};
-Library.NotificationPadding = 6;
-Library.NotificationMax = 6;
-Library.NotificationRateLimit = {
-    Window = 1.0,
-    Max = 4,
-    Timestamps = {},
-};
 
 Library._cooldowns = {};
 Library._destroyBin = {};
 Library._rgbConn = nil;
 Library._lastDepUpdate = 0;
-
-function Library:DestroyBinAdd(inst)
-    if typeof(inst) == 'Instance' then
-        table.insert(self._destroyBin, inst)
-    end
-end
-
-function Library:Cleanup()
-    for i = #self._destroyBin, 1, -1 do
-        local inst = table.remove(self._destroyBin, i)
-        pcall(function()
-            inst:Destroy()
-        end)
-    end
-end
-
-function Library:SetPerformanceMode(enabled)
-    self.PerformanceMode = not not enabled
-    self.Animation.Enabled = not self.PerformanceMode
-end
-
-function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
-    self.InteractionLocked = not not enabled
-
-    InteractionBlocker.Visible = true
-    InteractionBlocker.ZIndex = 0
-    InteractionBlocker.Active = true
-    InteractionBlocker.Modal = self.InteractionLocked
-    InteractionBlocker.BackgroundTransparency = 1
-
-    if not self.InteractionLocked then
-        task.delay(0.25, function()
-            InteractionBlocker.Visible = false
-            InteractionBlocker.Modal = false
-        end)
-        return
-    end
-end
-
-function Library:SetBackgroundBlur(enabled, amount)
-    local target = (type(amount) == 'number') and amount or self.Blur.Amount
-
-    if not enabled then
-        if self.Blur.Instance and self.Blur.Instance.Parent then
-            local inst = self.Blur.Instance
-            inst.Enabled = true
-            local tw = TweenService:Create(inst, self.Blur.TweenOut, { Size = 0 })
-            tw:Play()
-            tw.Completed:Connect(function()
-                pcall(function()
-                    inst:Destroy()
-                end)
-            end)
-        end
-        self.Blur.Instance = nil
-        return
-    end
-
-    local blur = Lighting:FindFirstChild(self.Blur.Name)
-    if not blur then
-        blur = Instance.new('BlurEffect')
-        blur.Name = self.Blur.Name
-        blur.Size = 0
-        blur.Enabled = true
-        blur.Parent = Lighting
-    end
-
-    self.Blur.Instance = blur
-    TweenService:Create(blur, self.Blur.TweenIn, { Size = target }):Play()
-end
-
-function Library:SetInputBlocked(enabled)
-    if enabled then
-        if self.InputBlock.Bound then
-            return
-        end
-
-        local function sink()
-            return Enum.ContextActionResult.Sink
-        end
-
-        local ok = pcall(function()
-            ContextActionService:BindActionAtPriority(
-                self.InputBlock.ActionName,
-                sink,
-                false,
-                10000,
-                Enum.UserInputType.MouseButton1,
-                Enum.UserInputType.MouseButton2,
-                Enum.UserInputType.MouseButton3,
-                Enum.UserInputType.MouseWheel,
-                Enum.UserInputType.MouseMovement,
-                Enum.UserInputType.Touch,
-                Enum.UserInputType.Keyboard,
-                Enum.UserInputType.Gamepad1,
-                Enum.UserInputType.Gamepad2,
-                Enum.UserInputType.Gamepad3,
-                Enum.UserInputType.Gamepad4
-            )
-        end)
-
-        if ok then
-            self.InputBlock.Bound = true
-        end
-        return
-    end
-
-    if self.InputBlock.Bound then
-        pcall(function()
-            ContextActionService:UnbindAction(self.InputBlock.ActionName)
-        end)
-        self.InputBlock.Bound = false
-    end
-end
-
-function Library:Tween(inst, tweenInfo, props)
-    if not self.Animation.Enabled then
-        for k, v in next, props do
-            inst[k] = v
-        end
-        return nil
-    end
-    local ti = tweenInfo or self.Animation.TweenInfo
-    local tween = TweenService:Create(inst, ti, props)
-    tween:Play()
-    return tween
-end
-
-function Library:ApplyHoverTween(hitbox, target, propsIn, propsOut, tweenInfo)
-    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then
-        return
-    end
-    local ti = tweenInfo or self.Animation.TweenInfoFast
-    hitbox.MouseEnter:Connect(function()
-        self:Tween(target, ti, propsIn)
-    end)
-    hitbox.MouseLeave:Connect(function()
-        self:Tween(target, ti, propsOut)
-    end)
-end
-
-function Library:ApplyClickTween(hitbox, target, propsDown, propsUp, tweenInfoDown, tweenInfoUp)
-    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then
-        return
-    end
-
-    local tiDown = tweenInfoDown or self.Animation.TweenInfoFast
-    local tiUp = tweenInfoUp or self.Animation.TweenInfoSpringFast
-
-    local function IsLeftClick(input)
-        return input and input.UserInputType == Enum.UserInputType.MouseButton1
-    end
-
-    hitbox.InputBegan:Connect(function(input)
-        if not IsLeftClick(input) then return end
-        self:Tween(target, tiDown, propsDown)
-    end)
-
-    hitbox.InputEnded:Connect(function(input)
-        if not IsLeftClick(input) then return end
-        self:Tween(target, tiUp, propsUp)
-    end)
-end
 
 function Library:FadeIn(inst, duration)
     if inst:IsA('GuiObject') then
@@ -3213,14 +2896,12 @@ do
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
-            Library:PlayUISound('Dropdown')
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
-            Library:PlayUISound('Dropdown')
         end;
 
         function Dropdown:OnChanged(Func)
@@ -3601,8 +3282,6 @@ end
 
 function Library:Notify(Text, Time, Type, Icon)
     if type(Text) ~= 'string' then Text = tostring(Text) end
-
-    self:PlayUISound('Notify')
 
     do
         local rl = self.NotificationRateLimit
@@ -4481,22 +4160,9 @@ function Library:CreateWindow(...)
     end
 
     Library:GiveSignal(InputService.InputBegan:Connect(function(Input, Processed)
-        if Processed then
-            return
-        end
-
-        if Library:IsTyping() then
-            return
-        end
         if type(Library.ToggleKeybind) == 'table' and Library.ToggleKeybind.Type == 'KeyPicker' then
             if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.ToggleKeybind.Value then
                 task.spawn(Library.Toggle)
-            end
-        elseif type(Library.PanicKeybind) == 'table' and Library.PanicKeybind.Type == 'KeyPicker' then
-            if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.PanicKeybind.Value then
-                task.spawn(function()
-                    Library:DoPanicAction()
-                end)
             end
         elseif Input.KeyCode == Enum.KeyCode.RightShift and (not Processed) then
             task.spawn(Library.Toggle)
