@@ -142,6 +142,10 @@ function Library:_initSounds()
         return
     end
 
+    if not self.ScreenGui then
+        return
+    end
+
     local function make(id)
         local s = Instance.new('Sound')
         s.SoundId = 'rbxassetid://' .. tostring(id)
