@@ -2411,9 +2411,8 @@ do
         function Toggle:Display()
             local bg = Toggle.Value and Library.AccentColor or Library.MainColor
             local bc = Toggle.Value and Library.AccentColorDark or Library.OutlineColor
-            local ti = (Library.Animation and (Toggle.Value and Library.Animation.TweenInfoSpringFast or Library.Animation.TweenInfoFast)) or nil
-
-            Library:Tween(ToggleOuter, ti, { BackgroundColor3 = bg, BorderColor3 = bc })
+            ToggleOuter.BackgroundColor3 = bg
+            ToggleOuter.BorderColor3 = bc
 
             local outerReg = Library.RegistryMap[ToggleOuter]
             if outerReg then
