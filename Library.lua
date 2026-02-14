@@ -3613,7 +3613,7 @@ function Library:_reflowNotifications()
     for i = 1, #self.NotificationQueue do
         local n = self.NotificationQueue[i]
         if n and n.Outer then
-            n.Outer.Position = UDim2.new(1, 0, 0, y)
+            n.Outer.Position = UDim2.new(1, 1, 0, y)
             y = y + (n.Outer.AbsoluteSize.Y + (self.NotificationPadding or 6))
         end
     end
