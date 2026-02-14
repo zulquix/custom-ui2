@@ -27,6 +27,49 @@ ProtectGui(ScreenGui);
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
+pcall(function()
+    for _, v in next, Lighting:GetChildren() do
+        if v:IsA('BlurEffect') or v:IsA('DepthOfFieldEffect') then
+            v:Destroy()
+        end
+    end
+end)
+
+pcall(function()
+    if type(setfpscap) == 'function' then
+        setfpscap(999)
+    elseif type(set_fps_cap) == 'function' then
+        set_fps_cap(999)
+    end
+end)
+
+local ToggleSound = Instance.new('Sound')
+ToggleSound.Name = 'ToggleSound'
+ToggleSound.SoundId = 'rbxassetid://85146328206277'
+ToggleSound.Volume = 0.6
+ToggleSound.Parent = ScreenGui
+
+-- Visual overlay for interaction blocking when UI is open.
+-- Purely visual: does not change gameplay logic, only captures input.
+
+local InteractionBlocker = Instance.new('TextButton')
+InteractionBlocker.Name = 'InteractionBlocker'
+InteractionBlocker.BackgroundColor3 = Color3.new(0, 0, 0)
+InteractionBlocker.BackgroundTransparency = 1
+InteractionBlocker.BorderSizePixel = 0
+InteractionBlocker.AutoButtonColor = false
+InteractionBlocker.Text = ''
+InteractionBlocker.Visible = false
+InteractionBlocker.ZIndex = 0
+InteractionBlocker.Size = UDim2.fromScale(1, 1)
+InteractionBlocker.Parent = ScreenGui
+
+InteractionBlocker.BackgroundTransparency = 1
+InteractionBlocker.Visible = false
+
+InteractionBlocker.MouseButton1Down:Connect(function() end)
+InteractionBlocker.MouseButton2Down:Connect(function() end)
+
 local Toggles = {};
 local Options = {};
 
@@ -49,14 +92,39 @@ local Library = {
     Black = Color3.new(0, 0, 0);
     Font = (Enum.Font.Nunito or Enum.Font.Code),
 
-    -- Stuff that you should not change unless you know what you're doing
     OpenedFrames = {};
     DependencyBoxes = {};
+
     Signals = {};
     ScreenGui = ScreenGui;
 };
 
 Library.AccentRegistry = {};
+
+Library.Blur = {
+    Name = 'LinoriaBackgroundBlur',
+    Amount = 18,
+    TweenIn = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenOut = TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    Instance = nil,
+};
+
+Library.InputBlock = {
+    ActionName = 'Linoria_InputBlock',
+    Bound = false,
+};
+
+Library.Animation = {
+    Enabled = true,
+    TweenInfoFast = TweenInfo.new(0.10, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenInfo = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenInfoSlow = TweenInfo.new(0.32, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenInfoSpring = TweenInfo.new(0.42, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    TweenInfoSpringFast = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    TweenInfoLinearFast = TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+};
+
+Library.PerformanceMode = false;
 
 Library.Themes = {
     SodiumDefault = {
@@ -97,11 +165,182 @@ Library.ActiveTheme = 'SodiumMidnight';
 pcall(function()
     Library:SetTheme(Library.ActiveTheme)
 end)
+Library.RGB = {
+    Enabled = false,
+    Speed = 3, -- higher = faster
+};
+
+Library.NotificationQueue = {};
+Library.NotificationPadding = 6;
+Library.NotificationMax = 6;
 
 Library._cooldowns = {};
 Library._destroyBin = {};
 Library._rgbConn = nil;
 Library._lastDepUpdate = 0;
+
+function Library:DestroyBinAdd(inst)
+    if typeof(inst) == 'Instance' then
+        table.insert(self._destroyBin, inst)
+    end
+end
+
+function Library:Cleanup()
+    for i = #self._destroyBin, 1, -1 do
+        local inst = table.remove(self._destroyBin, i)
+        pcall(function()
+            inst:Destroy()
+        end)
+    end
+end
+
+function Library:SetPerformanceMode(enabled)
+    self.PerformanceMode = not not enabled
+    self.Animation.Enabled = not self.PerformanceMode
+end
+
+function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
+    self.InteractionLocked = not not enabled
+
+    InteractionBlocker.Visible = true
+    InteractionBlocker.ZIndex = 0
+    InteractionBlocker.Active = true
+    InteractionBlocker.Modal = self.InteractionLocked
+    InteractionBlocker.BackgroundTransparency = 1
+
+    if not self.InteractionLocked then
+        task.delay(0.25, function()
+            InteractionBlocker.Visible = false
+            InteractionBlocker.Modal = false
+        end)
+        return
+    end
+end
+
+function Library:SetBackgroundBlur(enabled, amount)
+    local target = (type(amount) == 'number') and amount or self.Blur.Amount
+
+    if not enabled then
+        if self.Blur.Instance and self.Blur.Instance.Parent then
+            local inst = self.Blur.Instance
+            inst.Enabled = true
+            local tw = TweenService:Create(inst, self.Blur.TweenOut, { Size = 0 })
+            tw:Play()
+            tw.Completed:Connect(function()
+                pcall(function()
+                    inst:Destroy()
+                end)
+            end)
+        end
+        self.Blur.Instance = nil
+        return
+    end
+
+    local blur = Lighting:FindFirstChild(self.Blur.Name)
+    if not blur then
+        blur = Instance.new('BlurEffect')
+        blur.Name = self.Blur.Name
+        blur.Size = 0
+        blur.Enabled = true
+        blur.Parent = Lighting
+    end
+
+    self.Blur.Instance = blur
+    TweenService:Create(blur, self.Blur.TweenIn, { Size = target }):Play()
+end
+
+function Library:SetInputBlocked(enabled)
+    if enabled then
+        if self.InputBlock.Bound then
+            return
+        end
+
+        local function sink()
+            return Enum.ContextActionResult.Sink
+        end
+
+        local ok = pcall(function()
+            ContextActionService:BindActionAtPriority(
+                self.InputBlock.ActionName,
+                sink,
+                false,
+                10000,
+                Enum.UserInputType.MouseButton1,
+                Enum.UserInputType.MouseButton2,
+                Enum.UserInputType.MouseButton3,
+                Enum.UserInputType.MouseWheel,
+                Enum.UserInputType.MouseMovement,
+                Enum.UserInputType.Touch,
+                Enum.UserInputType.Keyboard,
+                Enum.UserInputType.Gamepad1,
+                Enum.UserInputType.Gamepad2,
+                Enum.UserInputType.Gamepad3,
+                Enum.UserInputType.Gamepad4
+            )
+        end)
+
+        if ok then
+            self.InputBlock.Bound = true
+        end
+        return
+    end
+
+    if self.InputBlock.Bound then
+        pcall(function()
+            ContextActionService:UnbindAction(self.InputBlock.ActionName)
+        end)
+        self.InputBlock.Bound = false
+    end
+end
+
+function Library:Tween(inst, tweenInfo, props)
+    if not self.Animation.Enabled then
+        for k, v in next, props do
+            inst[k] = v
+        end
+        return nil
+    end
+    local ti = tweenInfo or self.Animation.TweenInfo
+    local tween = TweenService:Create(inst, ti, props)
+    tween:Play()
+    return tween
+end
+
+function Library:ApplyHoverTween(hitbox, target, propsIn, propsOut, tweenInfo)
+    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then
+        return
+    end
+    local ti = tweenInfo or self.Animation.TweenInfoFast
+    hitbox.MouseEnter:Connect(function()
+        self:Tween(target, ti, propsIn)
+    end)
+    hitbox.MouseLeave:Connect(function()
+        self:Tween(target, ti, propsOut)
+    end)
+end
+
+function Library:ApplyClickTween(hitbox, target, propsDown, propsUp, tweenInfoDown, tweenInfoUp)
+    if typeof(hitbox) ~= 'Instance' or typeof(target) ~= 'Instance' then
+        return
+    end
+
+    local tiDown = tweenInfoDown or self.Animation.TweenInfoFast
+    local tiUp = tweenInfoUp or self.Animation.TweenInfoSpringFast
+
+    local function IsLeftClick(input)
+        return input and input.UserInputType == Enum.UserInputType.MouseButton1
+    end
+
+    hitbox.InputBegan:Connect(function(input)
+        if not IsLeftClick(input) then return end
+        self:Tween(target, tiDown, propsDown)
+    end)
+
+    hitbox.InputEnded:Connect(function(input)
+        if not IsLeftClick(input) then return end
+        self:Tween(target, tiUp, propsUp)
+    end)
+end
 
 function Library:FadeIn(inst, duration)
     if inst:IsA('GuiObject') then
@@ -791,7 +1030,7 @@ do
             BorderColor3 = Color3.new(0, 0, 0);
             Position = UDim2.fromOffset(4, 228),
             Size = UDim2.new(0.5, -6, 0, 20),
-            ZIndex = 18;
+            ZIndex = 18,
             Parent = PickerFrameInner;
         });
 
@@ -1619,7 +1858,7 @@ do
 
         Options[Idx] = KeyPicker;
 
-        return KeyPicker;
+        return self;
     end;
 
     BaseAddons.__index = Funcs;
@@ -2034,13 +2273,6 @@ do
         });
 
         Library:ApplyTextStroke(Box);
-
-        Box.Focused:Connect(function()
-            Library._isTyping = true
-        end)
-        Box.FocusLost:Connect(function()
-            Library._isTyping = false
-        end)
 
         function Textbox:SetValue(Text)
             if Info.MaxLength and #Text > Info.MaxLength then
@@ -3089,7 +3321,7 @@ do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, -4, 0, 40);
+        Position = UDim2.new(1, 0, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
@@ -3254,7 +3486,7 @@ function Library:_reflowNotifications()
     for i = 1, #self.NotificationQueue do
         local n = self.NotificationQueue[i]
         if n and n.Outer then
-            n.Outer.Position = UDim2.new(1, -4, 0, y)
+            n.Outer.Position = UDim2.new(1, 0, 0, y)
             y = y + (n.Outer.AbsoluteSize.Y + (self.NotificationPadding or 6))
         end
     end
@@ -3283,29 +3515,13 @@ end
 function Library:Notify(Text, Time, Type, Icon)
     if type(Text) ~= 'string' then Text = tostring(Text) end
 
-    do
-        local rl = self.NotificationRateLimit
-        if rl and rl.Timestamps then
-            local now = os.clock()
-            for i = #rl.Timestamps, 1, -1 do
-                if (now - rl.Timestamps[i]) > (rl.Window or 1) then
-                    table.remove(rl.Timestamps, i)
-                end
-            end
-            if #rl.Timestamps >= (rl.Max or 4) then
-                return
-            end
-            table.insert(rl.Timestamps, now)
-        end
-    end
-
     local xSize, ySize = self:GetTextBounds(Text, self.Font, 14)
     ySize = ySize + 7
 
     local notifyOuter = self:Create('Frame', {
         BorderColor3 = Color3.new(0, 0, 0);
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, -4, 0, 10);
+        Position = UDim2.new(1, -2, 0, 10);
         Size = UDim2.new(0, 0, 0, ySize);
         ClipsDescendants = true;
         ZIndex = 100;
@@ -3354,7 +3570,7 @@ function Library:Notify(Text, Time, Type, Icon)
     })
 
     local leftColor = self:Create('Frame', {
-        BackgroundColor3 = self:_notifyColorForType(Type);
+        BackgroundColor3 = self.AccentColor;
         BorderSizePixel = 0;
         Position = UDim2.new(1, -2, 0, -1);
         Size = UDim2.new(0, 3, 1, 2);
@@ -3584,8 +3800,6 @@ function Library:CreateWindow(...)
             Tabboxes = {};
         };
 
-        Library._currentTab = Tab
-
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
         local TabButton = Library:Create('Frame', {
@@ -3685,8 +3899,6 @@ function Library:CreateWindow(...)
             for _, Tab in next, Window.Tabs do
                 Tab:HideTab();
             end;
-
-            Library._currentTab = self
 
             Library:Tween(Blocker, Library.Animation.TweenInfoFast, { BackgroundTransparency = 0 })
             Library:Tween(TabButton, Library.Animation.TweenInfoFast, { BackgroundColor3 = Library.MainColor })
@@ -4039,7 +4251,6 @@ function Library:CreateWindow(...)
         local FadeTime = Config.MenuFadeTime;
         Fading = true;
         Toggled = (not Toggled);
-        Library._menuOpen = Toggled
 
         pcall(function()
             ToggleSound:Play()
@@ -4055,15 +4266,6 @@ function Library:CreateWindow(...)
 
         -- Blur entire background while UI is open
         Library:SetBackgroundBlur(Toggled)
-
-        if not Toggled then
-            for Frame, _ in next, Library.OpenedFrames do
-                pcall(function()
-                    Frame.Visible = false;
-                end)
-                Library.OpenedFrames[Frame] = nil;
-            end
-        end
 
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
@@ -4185,12 +4387,6 @@ local function OnPlayerChange()
         end;
     end;
 end;
-
-Players.PlayerAdded:Connect(OnPlayerChange);
-Players.PlayerRemoving:Connect(OnPlayerChange);
-
-getgenv().Library = Library
-return Library
 
 Players.PlayerAdded:Connect(OnPlayerChange);
 Players.PlayerRemoving:Connect(OnPlayerChange);
