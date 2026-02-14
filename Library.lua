@@ -45,26 +45,9 @@ end)
 
 local ToggleSound = Instance.new('Sound')
 ToggleSound.Name = 'ToggleSound'
-ToggleSound.SoundId = 'rbxassetid://9120097951'
+ToggleSound.SoundId = 'rbxassetid://85146328206277'
 ToggleSound.Volume = 0.6
 ToggleSound.Parent = ScreenGui
-
-local UISounds = {}
-
-local function CreateUISound(name, assetId, volume)
-    local s = Instance.new('Sound')
-    s.Name = name
-    s.SoundId = 'rbxassetid://' .. tostring(assetId)
-    s.Volume = volume or 0.6
-    s.Parent = ScreenGui
-    UISounds[name] = s
-    return s
-end
-
-CreateUISound('TabSwitchSound', 139719503904449, 0.65)
-CreateUISound('DropdownSound', 137210144318481, 0.65)
-CreateUISound('ToggleSoundNew', 9120097951, 0.65)
-CreateUISound('ButtonSound', 9120099090, 0.65)
 
 -- Visual overlay for interaction blocking when UI is open.
 -- Purely visual: does not change gameplay logic, only captures input.
@@ -142,8 +125,6 @@ Library.Animation = {
 };
 
 Library.PerformanceMode = false;
-
-Library.SodiumWatermarkEnabled = true;
 
 Library.Themes = {
     SodiumDefault = {
@@ -562,23 +543,6 @@ function Library:CreateLabel(Properties, IsHud)
 
     return Library:Create(_Instance, Properties);
 end;
-
-function Library:SetSodiumWatermarkEnabled(enabled)
-    self.SodiumWatermarkEnabled = not not enabled
-    if self.TopTitle then
-        local shouldShow = self.SodiumWatermarkEnabled and (self.Toggled == true)
-        self.TopTitle.Visible = shouldShow
-    end
-end
-
-function Library:PlayUISound(name)
-    local s = UISounds and UISounds[name]
-    if not s then return end
-    pcall(function()
-        s.TimePosition = 0
-        s:Play()
-    end)
-end
 
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
@@ -2112,14 +2076,12 @@ do
                     task.defer(rawset, Button, 'Locked', false)
 
                     if clicked then
-                        Library:PlayUISound('ButtonSound')
                         Library:SafeCallback(Button.Func)
                     end
 
                     return
                 end
 
-                Library:PlayUISound('ButtonSound')
                 Library:SafeCallback(Button.Func);
             end)
         end
@@ -2525,7 +2487,6 @@ do
             Toggle._busy = true
 
             Toggle.Value = Bool;
-            Library:PlayUISound('ToggleSoundNew')
             Toggle:Display();
 
             for _, Addon in next, Toggle.Addons do
@@ -3164,14 +3125,12 @@ do
         end;
 
         function Dropdown:OpenDropdown()
-            Library:PlayUISound('DropdownSound')
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
         end;
 
         function Dropdown:CloseDropdown()
-            Library:PlayUISound('DropdownSound')
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
@@ -3387,6 +3346,12 @@ do
         Parent = Library.TopTitle,
     })
 
+    local TopTitlePadding = Library:Create('UIPadding', {
+        PaddingTop = UDim.new(0, 6),
+        PaddingBottom = UDim.new(0, 6),
+        Parent = Library.TopTitle,
+    })
+
     local TopTitleMainLine = Library:Create('Frame', {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 26),
@@ -3407,10 +3372,9 @@ do
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Text = 'Sodium',
-        Font = Enum.Font.GothamBlack,
         TextSize = 26,
+        Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Center,
-        TextStrokeTransparency = 1,
         ZIndex = 252,
         Parent = TopTitleMainLine,
     })
@@ -3424,10 +3388,9 @@ do
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Text = 'Lib',
-        Font = Enum.Font.GothamBlack,
         TextSize = 26,
+        Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Center,
-        TextStrokeTransparency = 1,
         ZIndex = 252,
         Parent = TopTitleMainLine,
     })
@@ -3438,10 +3401,9 @@ do
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 20),
         Text = 'Premium Lua library',
-        Font = Enum.Font.GothamBold,
         TextSize = 15,
+        Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Center,
-        TextStrokeTransparency = 1,
         ZIndex = 251,
         Parent = Library.TopTitle,
     })
@@ -3449,8 +3411,6 @@ do
     Library:AddToRegistry(TopTitleSub, {
         TextColor3 = 'FontColor',
     }, true)
-
-    
 
     Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
@@ -4342,7 +4302,6 @@ function Library:CreateWindow(...)
 
         TabButton.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                Library:PlayUISound('TabSwitchSound')
                 Tab:ShowTab();
             end;
         end);
@@ -4377,7 +4336,6 @@ function Library:CreateWindow(...)
         local FadeTime = Config.MenuFadeTime;
         Fading = true;
         Toggled = (not Toggled);
-        self.Toggled = Toggled;
 
         pcall(function()
             ToggleSound:Play()
@@ -4398,7 +4356,7 @@ function Library:CreateWindow(...)
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
             if Library.TopTitle then
-                Library.TopTitle.Visible = (Library.SodiumWatermarkEnabled == true);
+                Library.TopTitle.Visible = true;
             end
 
             local startPos = Outer.Position
@@ -4483,7 +4441,7 @@ function Library:CreateWindow(...)
 
         Outer.Visible = Toggled;
         if Library.TopTitle then
-            Library.TopTitle.Visible = (Toggled and (Library.SodiumWatermarkEnabled == true)) or false;
+            Library.TopTitle.Visible = Toggled;
         end
 
         if not Toggled then
