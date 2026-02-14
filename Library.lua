@@ -3700,7 +3700,7 @@ function Library:CreateWindow(...)
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
         Position = Config.Position + UDim2.fromOffset(0, -56);
-        Size = UDim2.new(Config.Size.X, UDim.new(0, 0), 0, 52);
+        Size = UDim2.new(Config.Size.X, 0, 0, 52);
         Visible = false;
         ZIndex = 1;
         Parent = ScreenGui;
@@ -3708,7 +3708,7 @@ function Library:CreateWindow(...)
 
     local StatusInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
-        BorderColor3 = Library.OutlineColor;
+        BorderColor3 = Library.AccentColor;
         BorderMode = Enum.BorderMode.Inset;
         Position = UDim2.new(0, 1, 0, 1);
         Size = UDim2.new(1, -2, 1, -2);
@@ -3718,7 +3718,19 @@ function Library:CreateWindow(...)
 
     Library:AddToRegistry(StatusInner, {
         BackgroundColor3 = 'MainColor';
-        BorderColor3 = 'OutlineColor';
+        BorderColor3 = 'AccentColor';
+    })
+
+    local StatusGlow = Library:Create('UIStroke', {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = Library.AccentColor,
+        Thickness = 2,
+        Transparency = 0.25,
+        Parent = StatusInner,
+    })
+
+    Library:AddToRegistry(StatusGlow, {
+        Color = 'AccentColor',
     })
 
     local StatusPadding = Library:Create('UIPadding', {
@@ -3761,6 +3773,39 @@ function Library:CreateWindow(...)
         Parent = StatusInner,
     })
 
+    local StatusGradientHost = Library:Create('Frame', {
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 1, 0, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        ZIndex = 2,
+        Parent = StatusInner,
+    })
+
+    local StatusGradient = Library:Create('UIGradient', {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
+            ColorSequenceKeypoint.new(1, Library.MainColor),
+        }),
+        Rotation = -90,
+        Parent = StatusGradientHost,
+    })
+
+    Library:AddToRegistry(StatusGradient, {
+        Color = function()
+            return ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
+                ColorSequenceKeypoint.new(1, Library.MainColor),
+            })
+        end,
+    })
+
+    StatusPadding.Parent = StatusGradientHost
+    StatusLayout.Parent = StatusGradientHost
+    StatusTitle.Parent = StatusGradientHost
+    PlayerCountLabel.Parent = StatusGradientHost
+    AntiCheatLine.Parent = StatusGradientHost
+
     local AntiCheatPrefix = Library:CreateLabel({
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 0, 1, 0),
@@ -3794,7 +3839,7 @@ function Library:CreateWindow(...)
     local function UpdateStatusBarPosition()
         StatusOuter.AnchorPoint = Outer.AnchorPoint
         StatusOuter.Position = Outer.Position + UDim2.fromOffset(0, -(StatusOuter.Size.Y.Offset + 4))
-        StatusOuter.Size = UDim2.new(Outer.Size.X, UDim.new(0, 0), 0, StatusOuter.Size.Y.Offset)
+        StatusOuter.Size = UDim2.new(Outer.Size.X, 0, 0, StatusOuter.Size.Y.Offset)
     end
 
     Outer:GetPropertyChangedSignal('Position'):Connect(UpdateStatusBarPosition)
@@ -4475,6 +4520,7 @@ function Library:CreateWindow(...)
         task.wait(FadeTime);
 
         Outer.Visible = Toggled;
+        StatusOuter.Visible = Toggled;
 
         if not Toggled then
             -- Reset position in case of interruptions
