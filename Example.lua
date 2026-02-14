@@ -503,23 +503,6 @@ local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
 
-MenuGroup:AddLabel('Panic bind'):AddKeyPicker('PanicKeybind', { Default = 'P', NoUI = true, Text = 'Panic keybind' })
-Library.PanicKeybind = Options.PanicKeybind
-
-MenuGroup:AddToggle('PanicUnloads', { Text = 'Panic unloads library', Default = false })
-
-MenuGroup:AddToggle('UISoundsEnabled', { Text = 'UI Sounds', Default = true, Callback = function(v)
-    if Library.UISounds then
-        Library.UISounds.Enabled = v
-    end
-end })
-
-MenuGroup:AddSlider('UISoundsVolume', { Text = 'UI Sound Volume', Default = 60, Min = 0, Max = 100, Rounding = 0, Callback = function(v)
-    if Library.UISounds then
-        Library.UISounds.Volume = (v / 100)
-    end
-end })
-
 Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
 -- Addons:
@@ -550,57 +533,6 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- Builds our theme menu (with plenty of built in themes) on the left side
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
-
--- Fonts
-do
-    local FontsGroup = Tabs['UI Settings']:AddLeftGroupbox('Fonts')
-    local fonts = Library:GetFontList()
-
-    local FontSettingsFolder = 'SodiumLibSettings/settings'
-    local FontDefaultFile = FontSettingsFolder .. '/default-font.txt'
-
-    pcall(function()
-        if not isfolder('SodiumLibSettings') then
-            makefolder('SodiumLibSettings')
-        end
-        if not isfolder('SodiumLibSettings/settings') then
-            makefolder('SodiumLibSettings/settings')
-        end
-    end)
-
-    pcall(function()
-        if isfile(FontDefaultFile) then
-            local saved = readfile(FontDefaultFile)
-            if type(saved) == 'string' and Enum.Font[saved] then
-                Library:SetFontByName(saved)
-            end
-        end
-    end)
-
-    FontsGroup:AddDropdown('UIFont', {
-        Text = 'Font',
-        Values = fonts,
-        Default = table.find(fonts, Library.Font.Name) or 1,
-        Searchable = true,
-        Tooltip = 'Changes the UI font',
-        Callback = function(Value)
-            Library:SetFontByName(Value)
-        end
-    })
-
-    if Options and Options.UIFont and Options.UIFont.TextLabel then
-        pcall(function()
-            Options.UIFont.TextLabel.TextXAlignment = Enum.TextXAlignment.Left
-        end)
-    end
-
-    FontsGroup:AddButton('Set default font', function()
-        pcall(function()
-            writefile(FontDefaultFile, tostring(Options.UIFont.Value))
-        end)
-        Library:Notify(string.format('Set default font to %q', tostring(Options.UIFont.Value)), 3)
-    end)
-end
 
 print("sigma hi")
 -- You can use the SaveManager:LoadAutoloadConfig()
