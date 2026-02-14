@@ -3837,12 +3837,49 @@ function Library:CreateWindow(...)
         )
     end
 
+    local TopTitleTransparencyCache = {}
+
+    local function CacheTopTitleTransparencies()
+        if not Library.TopTitle or TopTitleTransparencyCache.Cached then
+            return
+        end
+
+        TopTitleTransparencyCache.Cached = true
+        TopTitleTransparencyCache[Library.TopTitle] = {
+            BackgroundTransparency = Library.TopTitle.BackgroundTransparency,
+        }
+
+        for _, Desc in next, Library.TopTitle:GetDescendants() do
+            if Desc:IsA('TextLabel') or Desc:IsA('TextBox') then
+                TopTitleTransparencyCache[Desc] = {
+                    TextTransparency = Desc.TextTransparency,
+                    BackgroundTransparency = Desc.BackgroundTransparency,
+                }
+            elseif Desc:IsA('ImageLabel') then
+                TopTitleTransparencyCache[Desc] = {
+                    ImageTransparency = Desc.ImageTransparency,
+                    BackgroundTransparency = Desc.BackgroundTransparency,
+                }
+            elseif Desc:IsA('Frame') then
+                TopTitleTransparencyCache[Desc] = {
+                    BackgroundTransparency = Desc.BackgroundTransparency,
+                }
+            elseif Desc:IsA('UIStroke') then
+                TopTitleTransparencyCache[Desc] = {
+                    Transparency = Desc.Transparency,
+                }
+            end
+        end
+    end
+
     local function SetTopTitleVisible(state, fadeTime)
         if not Library.TopTitle then
             return
         end
 
         fadeTime = fadeTime or 0.2
+
+        CacheTopTitleTransparencies()
 
         if state then
             UpdateTopTitlePosition()
@@ -3851,17 +3888,28 @@ function Library:CreateWindow(...)
 
         for _, Desc in next, Library.TopTitle:GetDescendants() do
             if Desc:IsA('TextLabel') or Desc:IsA('TextBox') then
-                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { TextTransparency = state and 0 or 1 }):Play()
+                local Cache = TopTitleTransparencyCache[Desc]
+                local targetText = Cache and Cache.TextTransparency or 0
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { TextTransparency = state and targetText or 1 }):Play()
             elseif Desc:IsA('ImageLabel') then
-                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { ImageTransparency = state and 0 or 1, BackgroundTransparency = state and Desc.BackgroundTransparency or 1 }):Play()
+                local Cache = TopTitleTransparencyCache[Desc]
+                local targetImg = Cache and Cache.ImageTransparency or 0
+                local targetBg = Cache and Cache.BackgroundTransparency or Desc.BackgroundTransparency
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { ImageTransparency = state and targetImg or 1, BackgroundTransparency = state and targetBg or 1 }):Play()
             elseif Desc:IsA('Frame') then
-                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and Desc.BackgroundTransparency or 1 }):Play()
+                local Cache = TopTitleTransparencyCache[Desc]
+                local targetBg = Cache and Cache.BackgroundTransparency or Desc.BackgroundTransparency
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and targetBg or 1 }):Play()
             elseif Desc:IsA('UIStroke') then
-                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { Transparency = state and Desc.Transparency or 1 }):Play()
+                local Cache = TopTitleTransparencyCache[Desc]
+                local target = Cache and Cache.Transparency or Desc.Transparency
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { Transparency = state and target or 1 }):Play()
             end
         end
 
-        TweenService:Create(Library.TopTitle, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and 0 or 1 }):Play()
+        local rootCache = TopTitleTransparencyCache[Library.TopTitle]
+        local rootTarget = rootCache and rootCache.BackgroundTransparency or 0
+        TweenService:Create(Library.TopTitle, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and rootTarget or 1 }):Play()
 
         if not state then
             -- Hidden immediately by Toggle() after its FadeTime wait.
