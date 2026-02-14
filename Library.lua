@@ -3442,6 +3442,18 @@ do
         Color = 'AccentColor',
     })
 
+    local TopTitleGlow = Library:Create('UIStroke', {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = Library.AccentColor,
+        Thickness = 6,
+        Transparency = 0.75,
+        Parent = TopTitleInner,
+    })
+
+    Library:AddToRegistry(TopTitleGlow, {
+        Color = 'AccentColor',
+    })
+
     Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
         FillDirection = Enum.FillDirection.Vertical;
@@ -3852,11 +3864,7 @@ function Library:CreateWindow(...)
         TweenService:Create(Library.TopTitle, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and 0 or 1 }):Play()
 
         if not state then
-            task.delay(fadeTime, function()
-                if Library.TopTitle then
-                    Library.TopTitle.Visible = false
-                end
-            end)
+            -- Hidden immediately by Toggle() after its FadeTime wait.
         end
     end
 
@@ -4526,6 +4534,9 @@ function Library:CreateWindow(...)
 
         Outer.Visible = Toggled;
         SetTopTitleVisible(Toggled, FadeTime)
+        if not Toggled and Library.TopTitle then
+            Library.TopTitle.Visible = false
+        end
 
         if not Toggled then
             -- Reset position in case of interruptions
