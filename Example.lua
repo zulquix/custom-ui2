@@ -36,17 +36,6 @@ local Tabs = {
 -- except Tabboxes you have to call the functions on a tab (Tabbox:AddTab(name))
 local LeftGroupBox = Tabs.Main:AddLeftGroupbox('Groupbox')
 
--- New: RGB accent toggle
-LeftGroupBox:AddToggle('RGBAccent', {
-    Text = 'RGB Accent (Animated)',
-    Default = false,
-    Tooltip = 'Animates the AccentColor using a rainbow loop',
-    Callback = function(Value)
-        Library:ToggleRGB(Value, 3)
-        Library:NotifySuccess('RGB Accent: ' .. (Value and 'ON' or 'OFF'), 2)
-    end
-})
-
 
 -- Demo: show/hide menu to demonstrate interaction lock + open animation
 LeftGroupBox:AddButton({
@@ -537,6 +526,47 @@ SaveManager:BuildConfigSection(Tabs['UI Settings'])
 -- Builds our theme menu (with plenty of built in themes) on the left side
 -- NOTE: you can also call ThemeManager:ApplyToGroupbox to add it to a specific groupbox
 ThemeManager:ApplyToTab(Tabs['UI Settings'])
+
+-- Place RGB Accent right under AccentColor in UI Settings
+do
+    local ThemesGroupbox = Tabs['UI Settings'].Groupboxes and Tabs['UI Settings'].Groupboxes['Themes']
+    if ThemesGroupbox and ThemesGroupbox.Container and Options and Options.AccentColor then
+        local accentLabel = Options.AccentColor.TextLabel
+        if accentLabel and accentLabel.Parent == ThemesGroupbox.Container then
+            local rgbToggle = ThemesGroupbox:AddToggle('RGBAccent', {
+                Text = 'RGB Accent (Animated)',
+                Default = false,
+                Tooltip = 'Animates the AccentColor using a rainbow loop',
+                Callback = function(Value)
+                    Library:ToggleRGB(Value, 3)
+                end
+            })
+
+            local rgbObj = rgbToggle and rgbToggle.TextLabel
+            if rgbObj then
+                rgbObj.LayoutOrder = accentLabel.LayoutOrder + 0.1
+            end
+        end
+    end
+end
+
+-- Fonts
+do
+    local FontsGroup = Tabs['UI Settings']:AddLeftGroupbox('Fonts')
+    local fonts = Library:GetFontList()
+    FontsGroup:AddDropdown('UIFont', {
+        Text = 'Font',
+        Values = fonts,
+        Default = table.find(fonts, Library.Font.Name) or 1,
+        Tooltip = 'Changes the UI font',
+        Callback = function(Value)
+            local enumItem = Enum.Font[Value]
+            if enumItem then
+                Library:SetFont(enumItem)
+            end
+        end
+    })
+end
 
 print("sigma hi")
 -- You can use the SaveManager:LoadAutoloadConfig()
