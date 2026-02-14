@@ -3339,7 +3339,7 @@ do
     })
 
     local TopTitleInner = Library:Create('Frame', {
-        BackgroundColor3 = Library.OutlineColor,
+        BackgroundColor3 = Library.MainColor,
         BorderColor3 = Library.OutlineColor,
         BorderMode = Enum.BorderMode.Inset,
         Position = UDim2.new(0, 1, 0, 1),
@@ -3349,7 +3349,7 @@ do
     })
 
     Library:AddToRegistry(TopTitleInner, {
-        BackgroundColor3 = 'OutlineColor',
+        BackgroundColor3 = 'MainColor',
         BorderColor3 = 'OutlineColor',
     }, true)
 
