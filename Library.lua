@@ -7,13 +7,14 @@ local Services = setmetatable({}, {
 })
 
 local InputService = Services.UserInputService;
-local ContextActionService = Services.ContextActionService;
 local TextService = Services.TextService;
 local CoreGui = Services.CoreGui;
 local Teams = Services.Teams;
 local Players = Services.Players;
 local RunService = Services.RunService;
 local TweenService = Services.TweenService;
+local ContextActionService = Services.ContextActionService;
+local Lighting = Services.Lighting;
 local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
 local Mouse = LocalPlayer:GetMouse();
@@ -27,11 +28,18 @@ ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 ScreenGui.Parent = CoreGui;
 
 pcall(function()
-    local Lighting = game:GetService('Lighting')
     for _, v in next, Lighting:GetChildren() do
         if v:IsA('BlurEffect') or v:IsA('DepthOfFieldEffect') then
             v:Destroy()
         end
+    end
+end)
+
+pcall(function()
+    if type(setfpscap) == 'function' then
+        setfpscap(999)
+    elseif type(set_fps_cap) == 'function' then
+        set_fps_cap(999)
     end
 end)
 
@@ -89,6 +97,19 @@ local Library = {
 
     Signals = {};
     ScreenGui = ScreenGui;
+};
+
+Library.Blur = {
+    Name = 'LinoriaBackgroundBlur',
+    Amount = 18,
+    TweenIn = TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    TweenOut = TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    Instance = nil,
+};
+
+Library.InputBlock = {
+    ActionName = 'Linoria_InputBlock',
+    Bound = false,
 };
 
 Library.Animation = {
@@ -176,19 +197,97 @@ function Library:SetPerformanceMode(enabled)
     self.Animation.Enabled = not self.PerformanceMode
 end
 
-local UIBlockActionName = 'LinoriaUI_BlockInput'
-
 function Library:SetInteractionLock(enabled, blurAmount, dimTransparency)
     self.InteractionLocked = not not enabled
 
-    if self.InteractionLocked then
-        ContextActionService:BindAction(UIBlockActionName, function()
+    InteractionBlocker.Visible = true
+    InteractionBlocker.ZIndex = 0
+    InteractionBlocker.Active = true
+    InteractionBlocker.Modal = self.InteractionLocked
+    InteractionBlocker.BackgroundTransparency = 1
+
+    if not self.InteractionLocked then
+        task.delay(0.25, function()
+            InteractionBlocker.Visible = false
+            InteractionBlocker.Modal = false
+        end)
+        return
+    end
+end
+
+function Library:SetBackgroundBlur(enabled, amount)
+    local target = (type(amount) == 'number') and amount or self.Blur.Amount
+
+    if not enabled then
+        if self.Blur.Instance and self.Blur.Instance.Parent then
+            local inst = self.Blur.Instance
+            inst.Enabled = true
+            local tw = TweenService:Create(inst, self.Blur.TweenOut, { Size = 0 })
+            tw:Play()
+            tw.Completed:Connect(function()
+                pcall(function()
+                    inst:Destroy()
+                end)
+            end)
+        end
+        self.Blur.Instance = nil
+        return
+    end
+
+    local blur = Lighting:FindFirstChild(self.Blur.Name)
+    if not blur then
+        blur = Instance.new('BlurEffect')
+        blur.Name = self.Blur.Name
+        blur.Size = 0
+        blur.Enabled = true
+        blur.Parent = Lighting
+    end
+
+    self.Blur.Instance = blur
+    TweenService:Create(blur, self.Blur.TweenIn, { Size = target }):Play()
+end
+
+function Library:SetInputBlocked(enabled)
+    if enabled then
+        if self.InputBlock.Bound then
+            return
+        end
+
+        local function sink()
             return Enum.ContextActionResult.Sink
-        end, false, Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.Space,
-            Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.LeftControl, Enum.KeyCode.RightControl,
-            Enum.UserInputType.MouseMovement)
-    else
-        ContextActionService:UnbindAction(UIBlockActionName)
+        end
+
+        local ok = pcall(function()
+            ContextActionService:BindActionAtPriority(
+                self.InputBlock.ActionName,
+                sink,
+                false,
+                10000,
+                Enum.UserInputType.MouseButton1,
+                Enum.UserInputType.MouseButton2,
+                Enum.UserInputType.MouseButton3,
+                Enum.UserInputType.MouseWheel,
+                Enum.UserInputType.MouseMovement,
+                Enum.UserInputType.Touch,
+                Enum.UserInputType.Keyboard,
+                Enum.UserInputType.Gamepad1,
+                Enum.UserInputType.Gamepad2,
+                Enum.UserInputType.Gamepad3,
+                Enum.UserInputType.Gamepad4
+            )
+        end)
+
+        if ok then
+            self.InputBlock.Bound = true
+        end
+        return
+    end
+
+    if self.InputBlock.Bound then
+        pcall(function()
+            ContextActionService:UnbindAction(self.InputBlock.ActionName)
+        end)
+        self.InputBlock.Bound = false
     end
 end
 
@@ -644,6 +743,14 @@ function Library:Unload()
     pcall(function()
         -- Ensure visual lock is removed
         Library:SetInteractionLock(false)
+    end)
+
+    pcall(function()
+        Library:SetInputBlocked(false)
+    end)
+
+    pcall(function()
+        Library:SetBackgroundBlur(false)
     end)
 
     -- Untoggle everything for clean exit
@@ -3473,16 +3580,9 @@ function Library:CreateWindow(...)
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
 
-    -- UI is always centered and non-draggable
+    Config.Center = true
     Config.AnchorPoint = Vector2.new(0.5, 0.5)
     Config.Position = UDim2.fromScale(0.5, 0.5)
-
-    if not Library.BlurEffect then
-        Library.BlurEffect = Instance.new('BlurEffect')
-        Library.BlurEffect.Name = 'LinoriaUI_Blur'
-        Library.BlurEffect.Size = 0
-        Library.BlurEffect.Parent = game:GetService('Lighting')
-    end
 
     local Window = {
         Tabs = {};
@@ -4061,15 +4161,15 @@ function Library:CreateWindow(...)
         end)
 
         ModalElement.Modal = Toggled;
-        Outer.Modal = Toggled;
 
-        -- Block game input (movement, camera) without transparent frame
+        -- Visual-only background lock (input capture)
         Library:SetInteractionLock(Toggled, nil, 0.55)
 
-        -- Blur background when UI is open, clear when closed
-        if Library.BlurEffect then
-            Library.BlurEffect.Size = Toggled and 24 or 0
-        end
+        -- Block all player input while UI is open (no transparent input frame)
+        Library:SetInputBlocked(Toggled)
+
+        -- Blur entire background while UI is open
+        Library:SetBackgroundBlur(Toggled)
 
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
