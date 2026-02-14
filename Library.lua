@@ -3696,9 +3696,10 @@ function Library:CreateWindow(...)
     });
 
     local StatusOuter = Library:Create('Frame', {
+        AnchorPoint = Vector2.new(0.5, 1),
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
-        Position = UDim2.fromOffset(0, -(52 + 4));
+        Position = UDim2.new(0.5, 0, 0, -4),
         Size = UDim2.new(1, 0, 0, 52);
         Visible = false;
         ZIndex = 20;
@@ -3752,7 +3753,7 @@ function Library:CreateWindow(...)
         TextSize = 14,
         Text = 'Server info:',
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 3,
+        ZIndex = 6,
         Parent = StatusInner,
     })
 
@@ -3761,14 +3762,14 @@ function Library:CreateWindow(...)
         TextSize = 14,
         Text = 'Player Count: --/--',
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 3,
+        ZIndex = 6,
         Parent = StatusInner,
     })
 
     local AntiCheatLine = Library:Create('Frame', {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 14),
-        ZIndex = 3,
+        ZIndex = 6,
         Parent = StatusInner,
     })
 
@@ -3777,7 +3778,8 @@ function Library:CreateWindow(...)
         BorderSizePixel = 0,
         Position = UDim2.new(0, 1, 0, 1),
         Size = UDim2.new(1, -2, 1, -2),
-        ZIndex = 2,
+        ZIndex = 1,
+        Active = false,
         Parent = StatusInner,
     })
 
@@ -3811,7 +3813,7 @@ function Library:CreateWindow(...)
         TextSize = 14,
         Text = 'AntiCheat Status: ',
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 3,
+        ZIndex = 7,
         Parent = AntiCheatLine,
     })
 
@@ -3822,7 +3824,7 @@ function Library:CreateWindow(...)
         Text = 'Bypassed',
         TextColor3 = Color3.fromRGB(0, 255, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 3,
+        ZIndex = 7,
         Parent = AntiCheatLine,
     })
 
