@@ -49,6 +49,32 @@ ToggleSound.SoundId = 'rbxassetid://85146328206277'
 ToggleSound.Volume = 0.6
 ToggleSound.Parent = ScreenGui
 
+local _InitialUISounds = {
+    Enabled = true,
+    Volume = 0.6,
+    Toggle = 'rbxassetid://126347354635406',
+    Dropdown = 'rbxassetid://87437544236708',
+    Notify = 'rbxassetid://85240253037283',
+}
+
+function Library:PlayUISound(kind)
+    if not self.UISounds or not self.UISounds.Enabled then return end
+
+    local id = self.UISounds[kind]
+    if type(id) ~= 'string' or id == '' then return end
+
+    local s = Instance.new('Sound')
+    s.SoundId = id
+    s.Volume = self.UISounds.Volume or 0.6
+    s.Parent = ScreenGui
+
+    s.Ended:Connect(function()
+        pcall(function() s:Destroy() end)
+    end)
+
+    pcall(function() s:Play() end)
+end
+
 -- Visual overlay for interaction blocking when UI is open.
 -- Purely visual: does not change gameplay logic, only captures input.
 
@@ -98,6 +124,184 @@ local Library = {
     Signals = {};
     ScreenGui = ScreenGui;
 };
+
+Library.GlobalSearch = {
+    Query = '',
+    Matches = {},
+    Index = {},
+    Cursor = 0,
+}
+
+Library._currentTab = nil
+Library._isTyping = false
+
+function Library:IsTyping()
+    return self._isTyping
+end
+
+function Library:_registerOptionForSearch(opt)
+    if type(opt) ~= 'table' then return end
+    if not self.GlobalSearch or not self.GlobalSearch.Index then return end
+
+    opt._searchText = self:_getOptionSearchText(opt)
+    opt._tab = self._currentTab
+
+    if typeof(opt.Container) == 'Instance' and opt.Container:IsA('GuiObject') then
+        opt._searchFrame = opt.Container
+    elseif typeof(opt.Frame) == 'Instance' and opt.Frame:IsA('GuiObject') then
+        opt._searchFrame = opt.Frame
+    elseif typeof(opt.DisplayFrame) == 'Instance' and opt.DisplayFrame:IsA('GuiObject') then
+        opt._searchFrame = opt.DisplayFrame
+    end
+
+    table.insert(self.GlobalSearch.Index, opt)
+end
+
+function Library:_scrollToOption(opt)
+    if type(opt) ~= 'table' then return end
+    local frame = opt._searchFrame
+    local tab = opt._tab
+    if not frame or not tab then return end
+
+    pcall(function()
+        if tab.ShowTab then
+            tab:ShowTab()
+        end
+    end)
+
+    local parent = frame.Parent
+    while parent and not parent:IsA('ScrollingFrame') do
+        parent = parent.Parent
+    end
+
+    if parent and parent:IsA('ScrollingFrame') then
+        local y = math.max(0, frame.AbsolutePosition.Y - parent.AbsolutePosition.Y)
+        parent.CanvasPosition = Vector2.new(parent.CanvasPosition.X, math.max(0, y - 24))
+    end
+end
+
+function Library:_setSelectedSearchMatch(idx)
+    local matches = self.GlobalSearch.Matches
+    if type(matches) ~= 'table' or #matches == 0 then return end
+    idx = math.clamp(idx, 1, #matches)
+    self.GlobalSearch.Cursor = idx
+    local opt = matches[idx]
+    if not opt then return end
+
+    self:_scrollToOption(opt)
+
+    local frame = opt._searchFrame
+    if frame and frame.Parent then
+        local old = frame.BackgroundTransparency
+        pcall(function()
+            frame.BackgroundTransparency = math.min(old, 0.65)
+        end)
+        task.delay(0.35, function()
+            if self.GlobalSearch and self.GlobalSearch.Query ~= '' and frame and frame.Parent then
+                pcall(function()
+                    frame.BackgroundTransparency = math.min(old, 0.85)
+                end)
+            end
+        end)
+    end
+end
+
+function Library:SearchNext()
+    local m = self.GlobalSearch.Matches
+    if type(m) ~= 'table' or #m == 0 then return end
+    local idx = (self.GlobalSearch.Cursor or 0) + 1
+    if idx > #m then idx = 1 end
+    self:_setSelectedSearchMatch(idx)
+end
+
+function Library:SearchPrev()
+    local m = self.GlobalSearch.Matches
+    if type(m) ~= 'table' or #m == 0 then return end
+    local idx = (self.GlobalSearch.Cursor or 1) - 1
+    if idx < 1 then idx = #m end
+    self:_setSelectedSearchMatch(idx)
+end
+
+Library.UISounds = _InitialUISounds
+
+function Library:_getOptionSearchText(opt)
+    if type(opt) ~= 'table' then return '' end
+    local parts = {}
+    if type(opt.Text) == 'string' then table.insert(parts, opt.Text) end
+    if type(opt.Name) == 'string' then table.insert(parts, opt.Name) end
+    if type(opt.Idx) == 'string' then table.insert(parts, opt.Idx) end
+    return table.concat(parts, ' '):lower()
+end
+
+function Library:SetGlobalSearchQuery(q)
+    if type(q) ~= 'string' then q = tostring(q or '') end
+    q = q:lower()
+
+    self.GlobalSearch.Query = q
+
+    for _, meta in next, (self.GlobalSearch.Matches or {}) do
+        if meta and meta.Frame and meta.Frame.Parent then
+            pcall(function()
+                meta.Frame.BackgroundTransparency = meta._oldBgT or meta.Frame.BackgroundTransparency
+            end)
+        end
+    end
+
+    self.GlobalSearch.Matches = {}
+
+    if q == '' then
+        return
+    end
+
+    for i = 1, #self.GlobalSearch.Index do
+        local opt = self.GlobalSearch.Index[i]
+        if type(opt) == 'table' then
+            local text = opt._searchText or self:_getOptionSearchText(opt)
+            if text:find(q, 1, true) then
+                table.insert(self.GlobalSearch.Matches, opt)
+                local frame = opt._searchFrame
+                if frame and frame.Parent then
+                    local old = frame.BackgroundTransparency
+                    opt._searchOldBgT = old
+                    pcall(function()
+                        frame.BackgroundTransparency = math.min(old, 0.85)
+                    end)
+                end
+            end
+        end
+    end
+
+    if #self.GlobalSearch.Matches > 0 then
+        self:_setSelectedSearchMatch(1)
+    end
+end
+
+function Library:DoPanicAction()
+    pcall(function()
+        if self.RGB then
+            self.RGB.Enabled = false
+        end
+    end)
+
+    pcall(function()
+        if Toggled and self.Toggle then
+            self:Toggle()
+        end
+    end)
+
+    local shouldUnload = false
+    pcall(function()
+        if Toggles and Toggles.PanicUnloads and Toggles.PanicUnloads.Type == 'Toggle' then
+            shouldUnload = Toggles.PanicUnloads.Value
+        end
+    end)
+
+    if shouldUnload and self.Unload then
+        pcall(function()
+            self:Unload()
+        end)
+    end
+end
 
 Library.AccentRegistry = {};
 
@@ -173,6 +377,11 @@ Library.RGB = {
 Library.NotificationQueue = {};
 Library.NotificationPadding = 6;
 Library.NotificationMax = 6;
+Library.NotificationRateLimit = {
+    Window = 1.0,
+    Max = 4,
+    Timestamps = {},
+};
 
 Library._cooldowns = {};
 Library._destroyBin = {};
@@ -1030,7 +1239,7 @@ do
             BorderColor3 = Color3.new(0, 0, 0);
             Position = UDim2.fromOffset(4, 228),
             Size = UDim2.new(0.5, -6, 0, 20),
-            ZIndex = 18,
+            ZIndex = 18;
             Parent = PickerFrameInner;
         });
 
@@ -1857,8 +2066,11 @@ do
         KeyPicker:Update();
 
         Options[Idx] = KeyPicker;
+        KeyPicker.Idx = Idx
+        KeyPicker.Text = Info.Text
+        Library:_registerOptionForSearch(KeyPicker)
 
-        return self;
+        return KeyPicker;
     end;
 
     BaseAddons.__index = Funcs;
@@ -2274,6 +2486,13 @@ do
 
         Library:ApplyTextStroke(Box);
 
+        Box.Focused:Connect(function()
+            Library._isTyping = true
+        end)
+        Box.FocusLost:Connect(function()
+            Library._isTyping = false
+        end)
+
         function Textbox:SetValue(Text)
             if Info.MaxLength and #Text > Info.MaxLength then
                 Text = Text:sub(1, Info.MaxLength);
@@ -2357,6 +2576,9 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Textbox;
+        Textbox.Idx = Idx
+        Textbox.Text = Info.Text
+        Library:_registerOptionForSearch(Textbox)
 
         return Textbox;
     end;
@@ -2533,6 +2755,9 @@ do
         setmetatable(Toggle, BaseAddons);
 
         Toggles[Idx] = Toggle;
+        Toggle.Idx = Idx
+        Toggle.Text = Info.Text
+        Library:_registerOptionForSearch(Toggle)
 
         Library:UpdateDependencyBoxes();
 
@@ -2731,7 +2956,9 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Slider;
-
+        Slider.Idx = Idx
+        Slider.Text = Info.Text
+        Library:_registerOptionForSearch(Slider)
         return Slider;
     end;
 
@@ -3128,12 +3355,14 @@ do
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
+            Library:PlayUISound('Dropdown')
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
+            Library:PlayUISound('Dropdown')
         end;
 
         function Dropdown:OnChanged(Func)
@@ -3229,6 +3458,9 @@ do
         Groupbox:Resize();
 
         Options[Idx] = Dropdown;
+        Dropdown.Idx = Idx
+        Dropdown.Text = Info.Text
+        Library:_registerOptionForSearch(Dropdown)
 
         return Dropdown;
     end;
@@ -3515,6 +3747,24 @@ end
 function Library:Notify(Text, Time, Type, Icon)
     if type(Text) ~= 'string' then Text = tostring(Text) end
 
+    self:PlayUISound('Notify')
+
+    do
+        local rl = self.NotificationRateLimit
+        if rl and rl.Timestamps then
+            local now = os.clock()
+            for i = #rl.Timestamps, 1, -1 do
+                if (now - rl.Timestamps[i]) > (rl.Window or 1) then
+                    table.remove(rl.Timestamps, i)
+                end
+            end
+            if #rl.Timestamps >= (rl.Max or 4) then
+                return
+            end
+            table.insert(rl.Timestamps, now)
+        end
+    end
+
     local xSize, ySize = self:GetTextBounds(Text, self.Font, 14)
     ySize = ySize + 7
 
@@ -3570,7 +3820,7 @@ function Library:Notify(Text, Time, Type, Icon)
     })
 
     local leftColor = self:Create('Frame', {
-        BackgroundColor3 = self.AccentColor;
+        BackgroundColor3 = self:_notifyColorForType(Type);
         BorderSizePixel = 0;
         Position = UDim2.new(1, -2, 0, -1);
         Size = UDim2.new(0, 3, 1, 2);
@@ -3800,6 +4050,8 @@ function Library:CreateWindow(...)
             Tabboxes = {};
         };
 
+        Library._currentTab = Tab
+
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
         local TabButton = Library:Create('Frame', {
@@ -3899,6 +4151,8 @@ function Library:CreateWindow(...)
             for _, Tab in next, Window.Tabs do
                 Tab:HideTab();
             end;
+
+            Library._currentTab = self
 
             Library:Tween(Blocker, Library.Animation.TweenInfoFast, { BackgroundTransparency = 0 })
             Library:Tween(TabButton, Library.Animation.TweenInfoFast, { BackgroundColor3 = Library.MainColor })
@@ -4267,6 +4521,15 @@ function Library:CreateWindow(...)
         -- Blur entire background while UI is open
         Library:SetBackgroundBlur(Toggled)
 
+        if not Toggled then
+            for Frame, _ in next, Library.OpenedFrames do
+                pcall(function()
+                    Frame.Visible = false;
+                end)
+                Library.OpenedFrames[Frame] = nil;
+            end
+        end
+
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
@@ -4365,6 +4628,12 @@ function Library:CreateWindow(...)
         if type(Library.ToggleKeybind) == 'table' and Library.ToggleKeybind.Type == 'KeyPicker' then
             if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.ToggleKeybind.Value then
                 task.spawn(Library.Toggle)
+            end
+        elseif type(Library.PanicKeybind) == 'table' and Library.PanicKeybind.Type == 'KeyPicker' then
+            if Input.UserInputType == Enum.UserInputType.Keyboard and Input.KeyCode.Name == Library.PanicKeybind.Value then
+                task.spawn(function()
+                    Library:DoPanicAction()
+                end)
             end
         elseif Input.KeyCode == Enum.KeyCode.RightShift and (not Processed) then
             task.spawn(Library.Toggle)
