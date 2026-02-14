@@ -57,22 +57,28 @@ local _InitialUISounds = {
     Notify = 'rbxassetid://85240253037283',
 }
 
-function Library:PlayUISound(kind)
+local function PlayUISoundImpl(self, kind)
     if not self.UISounds or not self.UISounds.Enabled then return end
 
     local id = self.UISounds[kind]
     if type(id) ~= 'string' or id == '' then return end
 
-    local s = Instance.new('Sound')
+    self._uiSoundCache = self._uiSoundCache or {}
+    local s = self._uiSoundCache[kind]
+    if not s then
+        s = Instance.new('Sound')
+        s.Name = 'UI_' .. tostring(kind)
+        s.Parent = ScreenGui
+        self._uiSoundCache[kind] = s
+    end
+
     s.SoundId = id
     s.Volume = self.UISounds.Volume or 0.6
-    s.Parent = ScreenGui
-
-    s.Ended:Connect(function()
-        pcall(function() s:Destroy() end)
+    pcall(function()
+        s:Stop()
+        s.TimePosition = 0
+        s:Play()
     end)
-
-    pcall(function() s:Play() end)
 end
 
 -- Visual overlay for interaction blocking when UI is open.
@@ -118,8 +124,12 @@ local Library = {
     Black = Color3.new(0, 0, 0);
     Font = (Enum.Font.Nunito or Enum.Font.Code),
 
+    -- Stuff that you should not change unless you know what you're doing
     OpenedFrames = {};
     DependencyBoxes = {};
+}
+
+Library.PlayUISound = PlayUISoundImpl
 
     Signals = {};
     ScreenGui = ScreenGui;
