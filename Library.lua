@@ -3321,14 +3321,16 @@ do
     Library.NotificationArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(1, 0);
-        Position = UDim2.new(1, 2, 0, 40);
+        Position = UDim2.new(1, 0, 0, 40);
         Size = UDim2.new(0, 300, 0, 200);
         ZIndex = 100;
         Parent = ScreenGui;
     });
 
     Library.TopTitle = Library:Create('Frame', {
-        BackgroundTransparency = 1;
+        BackgroundColor3 = Library.MainColor;
+        BackgroundTransparency = 0;
+        BorderSizePixel = 0;
         AnchorPoint = Vector2.new(0.5, 0);
         Position = UDim2.new(0.5, 0, 0, 10);
         Size = UDim2.new(0, 360, 0, 56);
@@ -3337,6 +3339,10 @@ do
         Active = false;
         Parent = ScreenGui;
     })
+
+    Library:AddToRegistry(Library.TopTitle, {
+        BackgroundColor3 = 'MainColor',
+    }, true)
 
     local TopTitleInner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor,
@@ -3817,6 +3823,41 @@ function Library:CreateWindow(...)
             math.floor(absPos.X + (absSize.X / 2)),
             math.floor(absPos.Y - ttSize.Y - 8)
         )
+    end
+
+    local function SetTopTitleVisible(state, fadeTime)
+        if not Library.TopTitle then
+            return
+        end
+
+        fadeTime = fadeTime or 0.2
+
+        if state then
+            UpdateTopTitlePosition()
+            Library.TopTitle.Visible = true
+        end
+
+        for _, Desc in next, Library.TopTitle:GetDescendants() do
+            if Desc:IsA('TextLabel') or Desc:IsA('TextBox') then
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { TextTransparency = state and 0 or 1 }):Play()
+            elseif Desc:IsA('ImageLabel') then
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { ImageTransparency = state and 0 or 1, BackgroundTransparency = state and Desc.BackgroundTransparency or 1 }):Play()
+            elseif Desc:IsA('Frame') then
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and Desc.BackgroundTransparency or 1 }):Play()
+            elseif Desc:IsA('UIStroke') then
+                TweenService:Create(Desc, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { Transparency = state and Desc.Transparency or 1 }):Play()
+            end
+        end
+
+        TweenService:Create(Library.TopTitle, TweenInfo.new(fadeTime, Enum.EasingStyle.Linear), { BackgroundTransparency = state and 0 or 1 }):Play()
+
+        if not state then
+            task.delay(fadeTime, function()
+                if Library.TopTitle then
+                    Library.TopTitle.Visible = false
+                end
+            end)
+        end
     end
 
     if Library.TopTitle then
@@ -4401,9 +4442,7 @@ function Library:CreateWindow(...)
         if Toggled then
             -- A bit scuffed, but if we're going from not toggled -> toggled we want to show the frame immediately so that the fade is visible.
             Outer.Visible = true;
-            if Library.TopTitle then
-                Library.TopTitle.Visible = true;
-            end
+            SetTopTitleVisible(true, FadeTime)
 
             local startPos = Outer.Position
             Outer.Position = startPos + UDim2.fromOffset(0, 22)
@@ -4486,9 +4525,7 @@ function Library:CreateWindow(...)
         task.wait(FadeTime);
 
         Outer.Visible = Toggled;
-        if Library.TopTitle then
-            Library.TopTitle.Visible = Toggled;
-        end
+        SetTopTitleVisible(Toggled, FadeTime)
 
         if not Toggled then
             -- Reset position in case of interruptions
