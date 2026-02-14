@@ -2396,24 +2396,9 @@ do
             if Library:MouseIsOverOpenedFrame() then
                 return
             end
-
-            if not Toggle.Value then
-                local reg = Library.RegistryMap[ToggleOuter]
-                Library:Tween(ToggleOuter, Library.Animation and Library.Animation.TweenInfoFast or nil, { BorderColor3 = Library.AccentColor })
-                if reg and reg.Properties.BorderColor3 then
-                    reg.Properties.BorderColor3 = 'AccentColor'
-                end
-            end
         end)
 
-        ToggleRegion.MouseLeave:Connect(function()
-            local reg = Library.RegistryMap[ToggleOuter]
-            local borderKey = Toggle.Value and 'AccentColorDark' or 'OutlineColor'
-            Library:Tween(ToggleOuter, Library.Animation and Library.Animation.TweenInfoFast or nil, { BorderColor3 = Library[borderKey] })
-            if reg and reg.Properties.BorderColor3 then
-                reg.Properties.BorderColor3 = borderKey
-            end
-        end)
+        ToggleRegion.MouseLeave:Connect(function() end)
 
         function Toggle:UpdateColors()
             Toggle:Display();
