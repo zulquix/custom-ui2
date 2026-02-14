@@ -86,6 +86,14 @@ local ThemeManager = {} do
 
 		groupbox:AddDivider()
 		groupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
+		groupbox:AddButton('Reset theme', function()
+			local theme = Options.ThemeManager_ThemeList and Options.ThemeManager_ThemeList.Value
+			if type(theme) ~= 'string' then
+				theme = 'SodiumMidnight'
+			end
+			self:ApplyTheme(theme)
+			self.Library:Notify(string.format('Reset theme to %q', theme), 3)
+		end)
 
 		groupbox:AddButton('Set as default', function()
 			self:SaveDefault(Options.ThemeManager_ThemeList.Value)
