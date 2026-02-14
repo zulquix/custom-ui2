@@ -399,6 +399,7 @@ end
 
 local RainbowStep = 0
 local Hue = 0
+local RGBCurrent = Library.AccentColor
 
 table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
     RainbowStep = RainbowStep + Delta
@@ -418,7 +419,11 @@ table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
         if Library.RGB and Library.RGB.Enabled then
             local spd = (Library.RGB.Speed or 3)
             local rgbHue = (Hue * spd) % 1
-            Library:_applyAccentColor(Color3.fromHSV(rgbHue, 0.85, 1))
+            local target = Color3.fromHSV(rgbHue, 0.85, 1)
+            RGBCurrent = RGBCurrent:Lerp(target, 0.35)
+            Library:_applyAccentColor(RGBCurrent)
+        else
+            RGBCurrent = Library.AccentColor
         end
     end
 end))
@@ -2394,9 +2399,9 @@ do
 
             if not Toggle.Value then
                 local reg = Library.RegistryMap[ToggleOuter]
-                ToggleOuter.BorderColor3 = Library.OutlineColor
+                Library:Tween(ToggleOuter, Library.Animation and Library.Animation.TweenInfoFast or nil, { BorderColor3 = Library.AccentColor })
                 if reg and reg.Properties.BorderColor3 then
-                    reg.Properties.BorderColor3 = 'OutlineColor'
+                    reg.Properties.BorderColor3 = 'AccentColor'
                 end
             end
         end)
@@ -2404,7 +2409,7 @@ do
         ToggleRegion.MouseLeave:Connect(function()
             local reg = Library.RegistryMap[ToggleOuter]
             local borderKey = Toggle.Value and 'AccentColorDark' or 'OutlineColor'
-            ToggleOuter.BorderColor3 = Library[borderKey]
+            Library:Tween(ToggleOuter, Library.Animation and Library.Animation.TweenInfoFast or nil, { BorderColor3 = Library[borderKey] })
             if reg and reg.Properties.BorderColor3 then
                 reg.Properties.BorderColor3 = borderKey
             end
