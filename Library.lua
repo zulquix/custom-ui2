@@ -3330,7 +3330,7 @@ do
     Library.TopTitle = Library:Create('Frame', {
         BackgroundTransparency = 1;
         AnchorPoint = Vector2.new(0.5, 0);
-        Position = UDim2.new(0.5, 0, 0, 30);
+        Position = UDim2.new(0.5, 0, 0, 10);
         Size = UDim2.new(0, 360, 0, 56);
         ZIndex = 250;
         Visible = false;
@@ -3338,25 +3338,58 @@ do
         Parent = ScreenGui;
     })
 
-    local TopTitleLayout = Library:Create('UIListLayout', {
-        FillDirection = Enum.FillDirection.Vertical,
-        HorizontalAlignment = Enum.HorizontalAlignment.Center,
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, -4),
+    local TopTitleInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor,
+        BorderColor3 = Library.OutlineColor,
+        BorderMode = Enum.BorderMode.Inset,
+        Position = UDim2.new(0, 1, 0, 1),
+        Size = UDim2.new(1, -2, 1, -2),
+        ZIndex = 250,
         Parent = Library.TopTitle,
+    })
+
+    Library:AddToRegistry(TopTitleInner, {
+        BackgroundColor3 = 'MainColor',
+        BorderColor3 = 'OutlineColor',
+    }, true)
+
+    local TopTitleGradient = Library:Create('UIGradient', {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
+            ColorSequenceKeypoint.new(1, Library.MainColor),
+        }),
+        Rotation = -90,
+        Parent = TopTitleInner,
+    })
+
+    Library:AddToRegistry(TopTitleGradient, {
+        Color = function()
+            return ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Library:GetDarkerColor(Library.MainColor)),
+                ColorSequenceKeypoint.new(1, Library.MainColor),
+            })
+        end,
     })
 
     local TopTitlePadding = Library:Create('UIPadding', {
         PaddingTop = UDim.new(0, 6),
         PaddingBottom = UDim.new(0, 6),
-        Parent = Library.TopTitle,
+        Parent = TopTitleInner,
+    })
+
+    local TopTitleLayout = Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Vertical,
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, -4),
+        Parent = TopTitleInner,
     })
 
     local TopTitleMainLine = Library:Create('Frame', {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 26),
         ZIndex = 251,
-        Parent = Library.TopTitle,
+        Parent = TopTitleInner,
     })
 
     local TopTitleMainLayout = Library:Create('UIListLayout', {
@@ -3373,7 +3406,6 @@ do
         AutomaticSize = Enum.AutomaticSize.X,
         Text = 'Sodium',
         TextSize = 26,
-        Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Center,
         ZIndex = 252,
         Parent = TopTitleMainLine,
@@ -3389,7 +3421,6 @@ do
         AutomaticSize = Enum.AutomaticSize.X,
         Text = 'Lib',
         TextSize = 26,
-        Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Center,
         ZIndex = 252,
         Parent = TopTitleMainLine,
@@ -3402,15 +3433,26 @@ do
         Size = UDim2.new(1, 0, 0, 20),
         Text = 'Premium Lua library',
         TextSize = 15,
-        Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Center,
         ZIndex = 251,
-        Parent = Library.TopTitle,
+        Parent = TopTitleInner,
     })
 
     Library:AddToRegistry(TopTitleSub, {
         TextColor3 = 'FontColor',
     }, true)
+
+    local TopTitleAccentStroke = Library:Create('UIStroke', {
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Color = Library.AccentColor,
+        Thickness = 2,
+        Transparency = 0.25,
+        Parent = TopTitleInner,
+    })
+
+    Library:AddToRegistry(TopTitleAccentStroke, {
+        Color = 'AccentColor',
+    })
 
     Library:Create('UIListLayout', {
         Padding = UDim.new(0, 4);
