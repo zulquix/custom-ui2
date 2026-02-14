@@ -116,6 +116,27 @@ Library.Sounds = {
     Button = nil,
 };
 
+Library.UISoundsEnabled = true;
+Library.UISoundVolume = 0.55;
+
+function Library:SetUISoundsEnabled(enabled)
+    self.UISoundsEnabled = not not enabled
+end
+
+function Library:SetUISoundVolume(vol)
+    if type(vol) ~= 'number' then
+        return
+    end
+    vol = math.clamp(vol, 0, 1)
+    self.UISoundVolume = vol
+
+    for _, s in next, self.Sounds do
+        if typeof(s) == 'Instance' and s:IsA('Sound') then
+            s.Volume = vol
+        end
+    end
+end
+
 function Library:_initSounds()
     if self.Sounds.Tab then
         return
@@ -124,7 +145,7 @@ function Library:_initSounds()
     local function make(id)
         local s = Instance.new('Sound')
         s.SoundId = 'rbxassetid://' .. tostring(id)
-        s.Volume = 0.55
+        s.Volume = self.UISoundVolume or 0.55
         s.Name = 'SodiumLibUISound'
         s.Parent = self.ScreenGui
         return s
@@ -138,6 +159,9 @@ end
 
 function Library:PlayUISound(kind)
     pcall(function()
+        if self.UISoundsEnabled == false then
+            return
+        end
         self:_initSounds()
         local s = self.Sounds[kind]
         if s then
