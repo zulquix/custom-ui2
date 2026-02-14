@@ -64,6 +64,16 @@ local ThemeManager = {} do
 		groupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
 		groupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
 		groupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
+
+		groupbox:AddToggle('RGBAccent', {
+			Text = 'RGB Accent (Animated)',
+			Default = false,
+			Tooltip = 'Animates the AccentColor using a rainbow loop',
+			Callback = function(Value)
+				self.Library:ToggleRGB(Value, 3)
+			end
+		})
+
 		groupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
 		groupbox:AddLabel('Font color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
 
