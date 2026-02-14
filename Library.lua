@@ -3696,14 +3696,13 @@ function Library:CreateWindow(...)
     });
 
     local StatusOuter = Library:Create('Frame', {
-        AnchorPoint = Config.AnchorPoint,
         BackgroundColor3 = Color3.new(0, 0, 0);
         BorderSizePixel = 0;
-        Position = Config.Position + UDim2.fromOffset(0, -56);
-        Size = UDim2.new(Config.Size.X, 0, 0, 52);
+        Position = UDim2.fromOffset(0, -(52 + 4));
+        Size = UDim2.new(1, 0, 0, 52);
         Visible = false;
-        ZIndex = 1;
-        Parent = ScreenGui;
+        ZIndex = 20;
+        Parent = Outer;
     })
 
     local StatusInner = Library:Create('Frame', {
@@ -3837,14 +3836,10 @@ function Library:CreateWindow(...)
     table.insert(Library.Signals, AntiCheatPrefix:GetPropertyChangedSignal('Text'):Connect(UpdateAntiCheatLayout))
 
     local function UpdateStatusBarPosition()
-        StatusOuter.AnchorPoint = Outer.AnchorPoint
-        StatusOuter.Position = Outer.Position + UDim2.fromOffset(0, -(StatusOuter.Size.Y.Offset + 4))
-        StatusOuter.Size = UDim2.new(Outer.Size.X, 0, 0, StatusOuter.Size.Y.Offset)
+        StatusOuter.Position = UDim2.fromOffset(0, -(StatusOuter.Size.Y.Offset + 4))
     end
 
-    Outer:GetPropertyChangedSignal('Position'):Connect(UpdateStatusBarPosition)
-    Outer:GetPropertyChangedSignal('Size'):Connect(UpdateStatusBarPosition)
-    Outer:GetPropertyChangedSignal('AnchorPoint'):Connect(UpdateStatusBarPosition)
+    StatusOuter:GetPropertyChangedSignal('Size'):Connect(UpdateStatusBarPosition)
 
     local function FormatPlayerCount()
         local cur = #Players:GetPlayers()
