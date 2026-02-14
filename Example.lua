@@ -503,16 +503,6 @@ local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
 MenuGroup:AddButton('Unload', function() Library:Unload() end)
 MenuGroup:AddLabel('Menu bind'):AddKeyPicker('MenuKeybind', { Default = 'RightShift', NoUI = true, Text = 'Menu keybind' })
 
-MenuGroup:AddToggle('SodiumWatermark', {
-    Text = 'SodiumLib watermark',
-    Default = true,
-    Tooltip = 'Shows the SodiumLib title at the top while the menu is open',
-}):OnChanged(function()
-    if Library.SetSodiumWatermarkEnabled then
-        Library:SetSodiumWatermarkEnabled(Toggles.SodiumWatermark.Value)
-    end
-end)
-
 Library.ToggleKeybind = Options.MenuKeybind -- Allows you to have a custom keybind for the menu
 
 -- Addons:
