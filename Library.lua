@@ -1913,6 +1913,8 @@ do
                 ZIndex = 5;
             });
 
+            Library:_withCorner(Outer, UDim.new(0, 10))
+
             local Inner = Library:Create('Frame', {
                 BackgroundColor3 = Library.MainColor;
                 BorderColor3 = Library.OutlineColor;
@@ -1921,6 +1923,8 @@ do
                 ZIndex = 6;
                 Parent = Outer;
             });
+
+            Library:_withCorner(Inner, UDim.new(0, 10))
 
             local Label = Library:CreateLabel({
                 Size = UDim2.new(1, 0, 1, 0);
@@ -2154,6 +2158,8 @@ do
             Parent = Container;
         });
 
+        Library:_withCorner(TextBoxOuter, UDim.new(0, 10))
+
         local TextBoxInner = Library:Create('Frame', {
             BackgroundColor3 = Library.MainColor;
             BorderColor3 = Library.OutlineColor;
@@ -2162,6 +2168,8 @@ do
             ZIndex = 6;
             Parent = TextBoxOuter;
         });
+
+        Library:_withCorner(TextBoxInner, UDim.new(0, 10))
 
         Library:AddToRegistry(TextBoxInner, {
             BackgroundColor3 = 'MainColor';
@@ -2330,10 +2338,14 @@ do
         local ToggleOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
             BorderColor3 = Color3.new(0, 0, 0);
+            BorderSizePixel = 0;
+            ClipsDescendants = true;
             Size = UDim2.new(0, 13, 0, 13);
             ZIndex = 5;
             Parent = Container;
         });
+
+        Library:_withCorner(ToggleOuter, UDim.new(0, 8))
 
         Library:AddToRegistry(ToggleOuter, {
             BackgroundColor3 = 'MainColor';
@@ -3577,7 +3589,7 @@ function Library:CreateWindow(...)
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
-    if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(520, 380) end
+    if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(680, 520) end
 
     if Config.Center then
         Config.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3727,6 +3739,8 @@ function Library:CreateWindow(...)
 
         Library:ApplyGlassFrame(TabButton, true, true, true, false)
 
+        Library:_withCorner(TabButton, UDim.new(0, 12))
+
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
         });
@@ -3837,6 +3851,8 @@ function Library:CreateWindow(...)
             ZIndex = 4;
             Parent = TabButton;
         })
+
+        Library:_withCorner(TabUnderline, UDim.new(0, 12))
 
         Library:AddToRegistry(TabUnderline, { BackgroundColor3 = 'AccentColor' })
 
